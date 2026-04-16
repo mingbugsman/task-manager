@@ -17,4 +17,4 @@ jobs:
           distribution: "temurin"
       - name: Build with Maven
         run: mvn -B package --no-transfer-progress
-        working-directory: backend
+        working-directory: backend/taskmanager
