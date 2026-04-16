@@ -3,8 +3,8 @@ name: Backend CI
 on:
   push:
     branches: [master]
-    paths:
-      - "backend/**"
+    # paths:
+    #   - "backend/**"
 
 jobs:
   build:
@@ -40,6 +40,13 @@ jobs:
         with:
           java-version: 17
           distribution: "temurin"
+          cache: 'maven'
+      - name: Wait for MySQL to be ready
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -P 3307 -u root -p123456 --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
       - name: Build with Maven
         run: mvn -B package --no-transfer-progress
         working-directory: backend/taskmanager
