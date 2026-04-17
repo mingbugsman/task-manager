@@ -26,6 +26,34 @@ spring:
     user: root
     password: 123456
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  mail:
+    properties:
+      mail:
+        smtp:
+          starttls:
+            enable: 'true'
+          ssl:
+            trust: smtp.gmail.com
+          auth: 'true'
+    host: smtp.gmail.com
+    username: ming18380@gmail.com
+    password: your_app_password
+    port: '587'
+
+
+
+MMM:
+  taskmanager:
+    app:
+      jwtSecret: MMM.TaskManager.token.MingDeBug
+      jwtExpirationMs: 86400000
+      jwtRefreshExpirationMs: '604800000
+
 logging:
   level:
     org.flywaydb: DEBUG
