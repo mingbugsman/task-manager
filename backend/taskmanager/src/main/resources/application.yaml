@@ -50,9 +50,9 @@ spring:
 MMM:
   taskmanager:
     app:
-      jwtSecret: MMM.TaskManager.token.MingDeBug
+      jwtSecret: XdLbqfOxFZkJ+tSAk3AeGw5pNUZJIIJmaM3RJl/RoIg=
       jwtExpirationMs: 86400000
-      jwtRefreshExpirationMs: '604800000
+      jwtRefreshExpirationMs: 604800000
 
 logging:
   level:
