@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.config;
 
+import com.MMM.taskmanager.entity.RefreshToken;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
