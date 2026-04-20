@@ -1,0 +1,36 @@
+### 1. Đăng ký tài khoản mới
+# Sau khi chạy lệnh này, bạn hãy check DB cột 'enabled' sẽ là 0 (false)
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "userName": "jotaro_developer",
+  "email": "kujojotaro722@gmail.com",
+  "password": "Password123@"
+}
+
+
+### 2. Xác thực OTP để kích hoạt tài khoản (Verify OTP)
+# giả sử nhập otp email 123456
+POST http://localhost:8080/api/v1/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "kujojotaro722@gmail.com",
+  "otp": "860707"
+}
+
+
+### 3. Yêu cầu Reset mật khẩu (Forgot Password)
+POST http://localhost:8080/api/v1/auth/forgot-password?email=kujojotaro722@gmail.com
+
+
+### 4. Đặt lại mật khẩu mới với OTP
+POST http://localhost:8080/api/v1/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "kujojotaro722@gmail.com",
+  "otp": "996160",
+  "newPassword": "NewPassword789!"
+}

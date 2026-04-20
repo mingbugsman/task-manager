@@ -29,7 +29,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@Valid @RequestBody LoginRequest request) {
-        TokenResponse tokenResponse = authService.authenticateUser(request.getUsername(), request.getPassword());
+        TokenResponse tokenResponse = authService.authenticateUser(request.getEmail(), request.getPassword());
         return ResponseEntity.ok(ApiResponse.of(tokenResponse, "Đăng nhập thành công."));
     }
 

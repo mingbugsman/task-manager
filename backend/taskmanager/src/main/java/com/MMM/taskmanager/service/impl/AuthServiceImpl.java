@@ -21,6 +21,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
     Long refreshTokenDurationMs;
 
     @Override
+    @Transactional
     public void registerUser(String userName, String email, String password) {
         if (userRepository.existsByEmail(email)) {
             throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
@@ -73,6 +75,7 @@ public class AuthServiceImpl implements AuthService {
         }
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         user.setEnabled(true);
+        userRepository.save(user);
         redisTemplate.delete(key);
     }
 
@@ -83,12 +86,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenResponse authenticateUser(String username, String password) {
+    public TokenResponse authenticateUser(String email, String password) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
+                new UsernamePasswordAuthenticationToken(email, password)
         );
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findByUserName(userDetails.getUsername())
+        System.out.println(userDetails.getEmail());
+        User user = userRepository.findByEmail(userDetails.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // 1. generate access token
@@ -125,11 +129,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void logoutOneDevice(String token) {
         refreshTokenService.deleteByToken(token);
     }
 
     @Override
+    @Transactional
     public void logoutAllDevice(Long userId) {
         refreshTokenService.deleteByUserId(userId);
     }

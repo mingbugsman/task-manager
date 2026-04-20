@@ -42,7 +42,7 @@ spring:
           auth: 'true'
     host: smtp.gmail.com
     username: ming18380@gmail.com
-    password: your_app_password
+    password: zzie dywd mrsf ccsf
     port: '587'
 
 

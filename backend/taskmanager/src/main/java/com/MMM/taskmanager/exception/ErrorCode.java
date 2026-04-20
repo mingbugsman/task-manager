@@ -31,6 +31,8 @@ public enum ErrorCode {
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_USER_ALREADY_EXISTS", "User with this email already exists."),
     USER_EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, "ERR_USER_EMAIL_ALREADY_VERIFIED", "Email is already verified."),
     USER_CANNOT_DELETE_SELF(HttpStatus.BAD_REQUEST, "ERR_USER_CANNOT_DELETE_SELF", "You cannot delete your own account."),
+    USER_DISABLED(HttpStatus.UNAUTHORIZED, "USER_DISABLED", "Tài khoản của bạn chưa được kích hoạt do chưa xác thực email."),
+    BAD_CREDENTIALS( HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Email or password is not correct"),
 
     // ----------- PROJECT ERROR --------------------
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_PROJECT_NOT_FOUND", "Project not found."),
