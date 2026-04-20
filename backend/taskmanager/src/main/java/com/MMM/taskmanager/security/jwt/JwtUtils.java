@@ -38,13 +38,13 @@ public class JwtUtils {
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
-        return generateTokenFromUsername(userPrincipal.getUsername());
+        return generateTokenFromEmail(userPrincipal.getEmail());
     }
 
     // refresh
-    public String generateTokenFromUsername(String username) {
+    public String generateTokenFromEmail(String email) {
         return Jwts.builder()
-                .subject(username)
+                .subject(email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .claim("role", "USER")

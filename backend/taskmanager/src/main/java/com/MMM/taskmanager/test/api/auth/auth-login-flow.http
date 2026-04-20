@@ -6,3 +6,21 @@ Content-Type: application/json
   "email": "kujojotaro722@gmail.com",
   "password": "Password123@"
 }
+
+### 2. Refresh Token khi Access Token hết hạn
+POST http://localhost:8080/api/v1/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": ...
+}
+
+
+### 3. Đăng xuất trên thiết bị hiện tại
+POST http://localhost:8080/api/v1/auth/logout
+Authorization: Bearer ...
+
+### 4. Đăng xuất khỏi tất cả thiết bị (Logout All)
+# Truyền userId để xóa sạch session/redis liên quan
+POST http://localhost:8080/api/v1/auth/logout-all?userId=1
+Authorization: Bearer ...

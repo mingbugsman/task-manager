@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -33,11 +34,12 @@ public class AuthServiceImpl implements AuthService {
 
     final AuthenticationManager authenticationManager;
     final UserRepository userRepository;
+    final OtpService otpService;
     final RedisTemplate<String, String> redisTemplate;
     final PasswordEncoder encoder;
     final JwtUtils jwtUtils;
     final RefreshTokenService refreshTokenService;
-    final EmailService emailService;
+
 
     @Value("${MMM.taskmanager.app.jwtRefreshExpirationMs}")
     Long refreshTokenDurationMs;
@@ -45,25 +47,29 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void registerUser(String userName, String email, String password) {
-        if (userRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+        Optional<User> existingUserOpt = userRepository.findByEmail(email);
+
+        if (existingUserOpt.isPresent()) {
+            User existingUser = existingUserOpt.get();
+            if (existingUser.isEnabled()) {
+                // Đã kích hoạt rồi thì mới báo lỗi
+                throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+            } else {
+                existingUser.setUserName(userName);
+                existingUser.setPasswordHash(encoder.encode(password));
+                userRepository.save(existingUser);
+            }
+        } else {
+            // Tạo mới hoàn toàn
+            User newUser = User.builder()
+                    .userName(userName)
+                    .email(email)
+                    .passwordHash(encoder.encode(password))
+                    .build();
+            userRepository.save(newUser);
         }
-        User user = User.builder()
-                .userName(userName)
-                .email(email)
-                .passwordHash(encoder.encode(password))
-                .build();
 
-        userRepository.save(user);
-
-        String otp = generateOtp();
-        String key = "otp:" + email;
-        redisTemplate.opsForValue().set(key,otp, 5, TimeUnit.MINUTES);
-        emailService.sendSimpleMessage(
-                email,
-                "Verify your account",
-                "Your OTP is: " + otp
-        );
+        otpService.sendOtp(email);
     }
 
     @Override
@@ -79,11 +85,7 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.delete(key);
     }
 
-    private String generateOtp() {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
-        return String.valueOf(otp);
-    }
+
 
     @Override
     public TokenResponse authenticateUser(String email, String password) {
@@ -96,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // 1. generate access token
-        String accessToken = jwtUtils.generateTokenFromUsername(user.getUserName());
+        String accessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
         // 2. generate refresh token
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUserId());
         // 3. save rtk to redis
@@ -117,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String newAccessToken = jwtUtils.generateTokenFromUsername(user.getUserName());
+        String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
 
         // rotation
         refreshTokenService.deleteByToken(refreshToken);
@@ -145,17 +147,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String otp = generateOtp();
-
-        String key = "otp:" + email;
-
-        redisTemplate.opsForValue().set(key, otp, 5, TimeUnit.MINUTES);
-
-        emailService.sendSimpleMessage(
-                email,
-                "Reset password OTP",
-                "Your OTP is: " + otp
-        );
+        otpService.sendOtp(email);
     }
 
     @Override

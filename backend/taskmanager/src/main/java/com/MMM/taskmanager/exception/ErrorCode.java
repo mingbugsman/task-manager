@@ -25,6 +25,8 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "ERR_REFRESH_TOKEN_INVALID", "Refresh token is invalid or expired."),
     OTP_INVALID(HttpStatus.UNAUTHORIZED, "ERR_OTP_INVALID", "OTP is incorrect."),
     OTP_EXPIRED(HttpStatus.UNAUTHORIZED, "ERR_OTP_EXPIRED", "OTP has expired. Please request a new one."),
+    OTP_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "OTP_TOO_MANY_REQUESTS", "Vui lòng chờ 60 giây trước khi tiếp gửi OTP."),
+    OTP_DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "OTP_DAILY_LIMIT_EXCEEDED", "Bạn đã gửi OTP vượt quá giới hạn trong ngày."),
 
     // ----------- USER ERROR --------------------
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_USER_NOT_FOUND", "User not found."),
