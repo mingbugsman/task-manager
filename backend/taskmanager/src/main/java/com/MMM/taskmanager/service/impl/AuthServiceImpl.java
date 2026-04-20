@@ -3,6 +3,7 @@ package com.MMM.taskmanager.service.impl;
 import com.MMM.taskmanager.dto.response.auth.TokenResponse;
 import com.MMM.taskmanager.entity.RefreshToken;
 import com.MMM.taskmanager.entity.User;
+import com.MMM.taskmanager.entity.UserDetailsImpl;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.repository.UserRepository;
@@ -13,8 +14,11 @@ import com.MMM.taskmanager.service.RefreshTokenService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +38,8 @@ public class AuthServiceImpl implements AuthService {
     RefreshTokenService refreshTokenService;
     EmailService emailService;
 
+    @Value("${MMM.taskmanager.app.jwtRefreshExpirationMs}")
+    Long refreshTokenDurationMs;
 
     @Override
     public void registerUser(String userName, String email, String password) {
@@ -78,7 +84,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public TokenResponse authenticateUser(String username, String password) {
-        return null;
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password)
+        );
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findByUserName(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 1. generate access token
+        String accessToken = jwtUtils.generateTokenFromUsername(user.getUserName());
+        // 2. generate refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUserId());
+        // 3. save rtk to redis
+        refreshTokenService.saveRefreshToken(refreshToken.getToken(), user.getUserId(), refreshTokenDurationMs);
+
+        return new TokenResponse(
+                accessToken,
+                refreshToken.getToken()
+        );
+
     }
 
     @Override
@@ -101,13 +125,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logoutUser(String token) {
-
+    public void logoutOneDevice(String token) {
+        refreshTokenService.deleteByToken(token);
     }
 
     @Override
     public void logoutAllDevice(Long userId) {
-
+        refreshTokenService.deleteByUserId(userId);
     }
 
     @Override

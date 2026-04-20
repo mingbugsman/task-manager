@@ -18,18 +18,20 @@ public class UserDetailsImpl implements UserDetails {
     private Long id;
     private String userName;
     private String email;
+    private boolean enabled;
 
     @JsonIgnore
     private String password;
 
     private Collection<? extends  GrantedAuthority> authorities;
 
-    public UserDetailsImpl(Long id, String userName, String email, String password,
+    public UserDetailsImpl(Long id, String userName, String email, String password, boolean enabled,
                            Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.userName = userName;
         this.email = email;
         this.password = password;
+        this.enabled = enabled;
         this.authorities = authorities;
     }
 
@@ -41,6 +43,7 @@ public class UserDetailsImpl implements UserDetails {
                 user.getUserName(),
                 user.getEmail(),
                 user.getPasswordHash(),
+                user.isEnabled(),
                 authorities
         );
     }
@@ -60,12 +63,12 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public @Nullable String getPassword() {
-        return password;
+        return this.password;
     }
 
     @Override
     public String getUsername() {
-        return userName;
+        return this.userName;
     }
 
     @Override
@@ -85,7 +88,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return this.enabled;
     }
 
     @Override
