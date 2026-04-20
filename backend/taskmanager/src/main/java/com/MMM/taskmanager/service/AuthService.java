@@ -6,10 +6,12 @@ import com.MMM.taskmanager.entity.User;
 
 
 public interface AuthService {
-    User registerUser(String userName, String email, String password);
+    void registerUser(String userName, String email, String password);
+    void verifyRegisterOtp(String email, String otp);
     TokenResponse authenticateUser(String username, String password);
     TokenResponse refreshToken(String refreshToken);
-    void logoutUser(Long userId);
+    void logoutUser(String token);
+    void logoutAllDevice(Long userId);
     void forgotPassword(String email);
     void resetPassword(String email, String otp, String newPassword);
 

@@ -41,6 +41,10 @@ public class User  {
     @Builder.Default
     private String status = "ACTIVE";
 
+    @Column(name = "enabled", nullable = false)
+    @Builder.Default
+    private boolean enabled = false;
+
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 

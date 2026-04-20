@@ -13,11 +13,13 @@ import com.MMM.taskmanager.service.RefreshTokenService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class AuthServiceImpl implements AuthService {
 
     AuthenticationManager authenticationManager;
     UserRepository userRepository;
+    RedisTemplate<String, String> redisTemplate;
     PasswordEncoder encoder;
     JwtUtils jwtUtils;
     RefreshTokenService refreshTokenService;
@@ -33,8 +36,44 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public User registerUser(String userName, String email, String password) {
-        return null;
+    public void registerUser(String userName, String email, String password) {
+        if (userRepository.existsByEmail(email)) {
+            throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+        }
+        User user = User.builder()
+                .userName(userName)
+                .email(email)
+                .passwordHash(encoder.encode(password))
+                .build();
+
+        userRepository.save(user);
+
+        String otp = generateOtp();
+        String key = "otp:" + email;
+        redisTemplate.opsForValue().set(key,otp, 5, TimeUnit.MINUTES);
+        emailService.sendSimpleMessage(
+                email,
+                "Verify your account",
+                "Your OTP is: " + otp
+        );
+    }
+
+    @Override
+    public void verifyRegisterOtp(String email, String otp) {
+        String key = "otp:" + email;
+        String storedOtp = redisTemplate.opsForValue().get(key);
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new AppException(ErrorCode.OTP_INVALID);
+        }
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        user.setEnabled(true);
+        redisTemplate.delete(key);
+    }
+
+    private String generateOtp() {
+        Random random = new Random();
+        int otp = 100000 + random.nextInt(900000);
+        return String.valueOf(otp);
     }
 
     @Override
@@ -62,17 +101,46 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logoutUser(Long userId) {
+    public void logoutUser(String token) {
+
+    }
+
+    @Override
+    public void logoutAllDevice(Long userId) {
 
     }
 
     @Override
     public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        String otp = generateOtp();
+
+        String key = "otp:" + email;
+
+        redisTemplate.opsForValue().set(key, otp, 5, TimeUnit.MINUTES);
+
+        emailService.sendSimpleMessage(
+                email,
+                "Reset password OTP",
+                "Your OTP is: " + otp
+        );
     }
 
     @Override
     public void resetPassword(String email, String otp, String newPassword) {
+        String key = "otp:" + email;
+        String storedOtp = redisTemplate.opsForValue().get(key);
 
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new AppException(ErrorCode.OTP_INVALID);
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        user.setPasswordHash(encoder.encode(newPassword));
+        userRepository.save(user);
+        redisTemplate.delete(key);
     }
 }
