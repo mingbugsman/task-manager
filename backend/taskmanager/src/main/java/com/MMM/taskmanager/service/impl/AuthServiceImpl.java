@@ -27,16 +27,16 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
-    AuthenticationManager authenticationManager;
-    UserRepository userRepository;
-    RedisTemplate<String, String> redisTemplate;
-    PasswordEncoder encoder;
-    JwtUtils jwtUtils;
-    RefreshTokenService refreshTokenService;
-    EmailService emailService;
+    final AuthenticationManager authenticationManager;
+    final UserRepository userRepository;
+    final RedisTemplate<String, String> redisTemplate;
+    final PasswordEncoder encoder;
+    final JwtUtils jwtUtils;
+    final RefreshTokenService refreshTokenService;
+    final EmailService emailService;
 
     @Value("${MMM.taskmanager.app.jwtRefreshExpirationMs}")
     Long refreshTokenDurationMs;

@@ -11,13 +11,13 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+
 public class EmailServiceImpl implements EmailService {
 
-    JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
-    String fromEmail;
+    private String fromEmail;
 
     @Override
     public void sendSimpleMessage(String to, String subject, String text) {
