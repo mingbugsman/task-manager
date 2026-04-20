@@ -139,6 +139,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logoutAllDevice(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         refreshTokenService.deleteByUserId(userId);
     }
 

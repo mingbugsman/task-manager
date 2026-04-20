@@ -5,6 +5,7 @@ import com.MMM.taskmanager.entity.User;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 
+import com.MMM.taskmanager.repository.RefreshTokenRepository;
 import com.MMM.taskmanager.repository.UserRepository;
 import com.MMM.taskmanager.service.RefreshTokenService;
 import lombok.AccessLevel;
@@ -15,8 +16,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -24,7 +28,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Value("${MMM.taskmanager.app.jwtRefreshExpirationMs}")
     Long refreshTokenDurationMs;
-
+    final RefreshTokenRepository refreshTokenRepository;
     final RedisTemplate<String, String> redisTemplate;
     final UserRepository userRepository;
 
@@ -77,7 +81,8 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         // lưu Redis
         saveRefreshToken(token, userId, refreshTokenDurationMs);
 
-        return buildRefreshToken(user, token);
+        RefreshToken refreshToken = buildRefreshToken(user, token);
+        return refreshTokenRepository.save(refreshToken);
     }
 
 
@@ -88,11 +93,14 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         String userIdStr = redisTemplate.opsForValue().get(key);
 
-        if (userIdStr != null) {
-            String userSetKey = USER_REFRESH_TOKENS_SET_PREFIX + userIdStr;
-            redisTemplate.opsForSet().remove(userSetKey, token);
+        // if not finding token in redis, then it would be logout or outdated
+        if (userIdStr == null || userIdStr.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
         }
+        String userSetKey = USER_REFRESH_TOKENS_SET_PREFIX + userIdStr;
+        redisTemplate.opsForSet().remove(userSetKey, token);
 
+        // delete this token
         redisTemplate.delete(key);
     }
 
@@ -100,21 +108,28 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     public int deleteByUserId(Long userId) {
-        String userSetKey = USER_REFRESH_TOKENS_SET_PREFIX + userId;
 
-        var tokens = redisTemplate.opsForSet().members(userSetKey);
-
-        if (tokens != null) {
-            for (String token : tokens) {
-                redisTemplate.delete(REFRESH_TOKEN_KEY_PREFIX + token);
-            }
+        if (!userRepository.existsById(userId)) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
 
-        redisTemplate.delete(userSetKey);
+        String userSetKey = USER_REFRESH_TOKENS_SET_PREFIX + userId;
+        var tokens = redisTemplate.opsForSet().members(userSetKey);
 
-        return tokens != null ? tokens.size() : 0;
+        if (tokens != null && !tokens.isEmpty()) {
+            List<String> keysToDelete = tokens.stream()
+                    .map(token -> REFRESH_TOKEN_KEY_PREFIX + token)
+                    .collect(Collectors.toList());
+
+            redisTemplate.delete(keysToDelete);
+
+            redisTemplate.delete(userSetKey);
+
+            return tokens.size();
+        }
+
+        return 0;
     }
-
 
     private RefreshToken buildRefreshToken(User user, String token) {
         RefreshToken refreshToken = new RefreshToken();
@@ -122,7 +137,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         refreshToken.setToken(token);
 
         refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-
         return refreshToken;
     }
 }
