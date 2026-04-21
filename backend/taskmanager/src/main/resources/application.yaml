@@ -59,6 +59,11 @@ MMM:
       jwtExpirationMs: 86400000
       jwtRefreshExpirationMs: 604800000
 
+server:
+  error:
+    whitelabel:
+      enabled: false
+
 logging:
   level:
     org.flywaydb: DEBUG
