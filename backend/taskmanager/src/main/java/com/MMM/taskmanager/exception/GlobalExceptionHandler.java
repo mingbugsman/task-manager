@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -74,6 +77,40 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ProblemDetail> handleDisabledException(
+            DisabledException ex, HttpServletRequest request
+    ) {
+
+        ErrorCode errorCode = ErrorCode.USER_DISABLED;
+
+        ProblemDetail problem = buildProblemDetail(
+                errorCode.getHttpStatus(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
+
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
+
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleBadCredentialsException(
+            BadCredentialsException ex, HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.BAD_CREDENTIALS;
+
+        ProblemDetail problem = buildProblemDetail(
+                errorCode.getHttpStatus(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
+
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
     // still more...
 
     // -----------  GENERIC - 500 - EXCEPTION --------------------

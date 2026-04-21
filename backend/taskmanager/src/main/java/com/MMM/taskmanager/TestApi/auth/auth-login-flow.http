@@ -1,0 +1,27 @@
+### 1. Đăng nhập để lấy Access Token và Refresh Token
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "kujojotaro722@gmail.com",
+  "password": "NewPassword789!"
+}
+
+
+### 2. Refresh Token khi Access Token hết hạn
+POST http://localhost:8080/api/v1/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "ab8986f2-a300-455d-9a78-6587012fc63d"
+}
+
+
+### 3. Đăng xuất trên thiết bị hiện tại
+POST http://localhost:8080/api/v1/auth/logout
+Authorization: Bearer 7190fddd-afcd-4bf3-a512-d46d12bb9f53
+
+### 4. Đăng xuất khỏi tất cả thiết bị (Logout All)
+# Truyền userId để xóa sạch session/redis liên quan
+POST http://localhost:8080/api/v1/auth/logout-all?userId=4
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NjcwMjExMiwiZXhwIjoxNzc2Nzg4NTEyLCJyb2xlIjoiVVNFUiJ9.-1_UGA6VKVQBQaPCL9gusSt8G7kd5bUga2y8vcF1Pu8
