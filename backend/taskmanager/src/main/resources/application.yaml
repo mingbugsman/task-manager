@@ -45,7 +45,12 @@ spring:
     password: zzie dywd mrsf ccsf
     port: '587'
 
-
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
 
 MMM:
   taskmanager:
