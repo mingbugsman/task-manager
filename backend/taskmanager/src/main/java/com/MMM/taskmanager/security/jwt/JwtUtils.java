@@ -38,11 +38,11 @@ public class JwtUtils {
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
-        return generateTokenFromEmail(userPrincipal.getEmail());
+        return generateAccessTokenFromEmail(userPrincipal.getEmail());
     }
 
-    // refresh
-    public String generateTokenFromEmail(String email) {
+    // access token
+    public String generateAccessTokenFromEmail(String email) {
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())

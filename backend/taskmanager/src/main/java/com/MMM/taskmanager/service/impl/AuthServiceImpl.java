@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // 1. generate access token
-        String accessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
+        String accessToken = jwtUtils.generateAccessTokenFromEmail(user.getEmail());
         // 2. generate refresh token
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getUserId());
         // 3. save rtk to redis
@@ -119,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
+        String newAccessToken = jwtUtils.generateAccessTokenFromEmail(user.getEmail());
 
         // rotation
         refreshTokenService.deleteByToken(refreshToken);
