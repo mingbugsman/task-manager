@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.dto.request.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -14,13 +15,16 @@ import org.hibernate.validator.constraints.Length;
 public class RegisterRequest {
     @NotBlank(message = "Username không được để trống")
     @Size(min = 3, max = 20, message = "Username phải từ 3 đến 20 ký tự")
+    @Schema(description = "Tên tài khoản để đăng ký", example = "Ming De Bug")
     private String userName;
 
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không đúng định dạng")
+    @Schema(description = "Email của người dùng để đăng ký", example = "user@example.com")
     private String email;
 
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, max = 18, message = "Mật khẩu phải có ít nhất 6 ký tự và giới hạn 18 ký tự")
+    @Schema(description = "Password để đăng ký tài khoản")
     private String password;
 }

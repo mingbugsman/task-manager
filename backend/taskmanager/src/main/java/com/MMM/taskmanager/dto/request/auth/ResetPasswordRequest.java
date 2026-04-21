@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.dto.request.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -13,12 +14,16 @@ import lombok.ToString;
 public class ResetPasswordRequest {
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không đúng định dạng")
+    @Schema(description = "Email của người dùng", example = "user@example.com")
     private String email;
 
     @NotBlank(message = "Mã OTP không được để trống")
+    @Schema(description = "OTP đã hệ thống gửi vào email của người dùng")
     private String otp;
 
     @NotBlank(message = "Mật khẩu mới không được để trống")
     @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
+    @Schema(description = "Password mới của người dùng")
+
     private String newPassword;
 }
