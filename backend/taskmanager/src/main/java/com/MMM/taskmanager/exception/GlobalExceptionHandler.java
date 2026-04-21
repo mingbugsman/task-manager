@@ -11,7 +11,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
@@ -77,6 +79,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ProblemDetail> handleNotFoundResource(NoResourceFoundException exception, HttpServletRequest request) {
+        ErrorCode errorCode = ErrorCode.RESOURCE_NOT_FOUND;
+        ProblemDetail problem = buildProblemDetail(
+          errorCode.getHttpStatus(),
+          errorCode.getCode(),
+          errorCode.getMessage(),
+                request
+        );
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ProblemDetail> handleDisabledException(

@@ -45,7 +45,12 @@ spring:
     password: zzie dywd mrsf ccsf
     port: '587'
 
-
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
 
 MMM:
   taskmanager:
@@ -53,6 +58,11 @@ MMM:
       jwtSecret: XdLbqfOxFZkJ+tSAk3AeGw5pNUZJIIJmaM3RJl/RoIg=
       jwtExpirationMs: 86400000
       jwtRefreshExpirationMs: 604800000
+
+server:
+  error:
+    whitelabel:
+      enabled: false
 
 logging:
   level:
