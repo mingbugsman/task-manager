@@ -4,7 +4,6 @@ import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.service.EmailService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -32,21 +31,20 @@ public class OtpService {
         String countStr = stringRedisTemplate.opsForValue().get(limitKey);
         Integer dailyCount = countStr != null ? Integer.parseInt(countStr) : null;
 
-        // 2. Kiểm tra giới hạn ngày
+        // 2. Checking limit
         if (dailyCount != null && dailyCount >= MAX_OTP_PER_DAY) {
             throw new AppException(ErrorCode.OTP_DAILY_LIMIT_EXCEEDED);
         }
 
-
-
-        // 3. Thực hiện gửi OTP (Email/SMS logic...)
+        // 3. send OTP (Email/SMS logic...)
         String otp = generateOtp();
         sendActualEmail(email, otp);
 
-        // 4. Lưu trạng thái vào Redis
-        // chạy trong hàm sendActualEmail
+        stringRedisTemplate.opsForValue().set(cooldownKey, "true", COOLDOWN_SECONDS, TimeUnit.SECONDS);
+        // 4. store state
+        // exec sendActualEmail
 
-        // Tăng giới hạn ngày
+        // inc limit key
         if (dailyCount == null) {
             stringRedisTemplate.opsForValue().set(limitKey, "1", Duration.ofDays(1));
         } else {
