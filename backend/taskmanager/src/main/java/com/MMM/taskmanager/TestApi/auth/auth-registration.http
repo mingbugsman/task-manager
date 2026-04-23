@@ -17,7 +17,7 @@ Content-Type: application/json
 
 {
   "email": "kujojotaro722@gmail.com",
-  "otp": "860707"
+  "otp": "398956"
 }
 
 
@@ -31,6 +31,6 @@ Content-Type: application/json
 
 {
   "email": "kujojotaro722@gmail.com",
-  "otp": "996160",
+  "otp": "764997",
   "newPassword": "NewPassword789!"
 }

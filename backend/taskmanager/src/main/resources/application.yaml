@@ -2,13 +2,12 @@ spring:
   application:
     name: TaskManager
 
-  # config datasource
   datasource:
-    url: jdbc:mysql://localhost:3307/task_manager_db
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3307/task_manager_db}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  # config jpa
+
   jpa:
     hibernate:
       ddl-auto: none
@@ -17,33 +16,32 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
-  # config flyway
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
-    url: jdbc:mysql://localhost:3307/task_manager_db
-    user: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3307/task_manager_db}
+    user: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
+          auth: true
           starttls:
-            enable: 'true'
+            enable: true
           ssl:
             trust: smtp.gmail.com
-          auth: 'true'
-    host: smtp.gmail.com
-    username: ming18380@gmail.com
-    password: zzie dywd mrsf ccsf
-    port: '587'
 
 springdoc:
   swagger-ui:
@@ -55,9 +53,9 @@ springdoc:
 MMM:
   taskmanager:
     app:
-      jwtSecret: XdLbqfOxFZkJ+tSAk3AeGw5pNUZJIIJmaM3RJl/RoIg=
-      jwtExpirationMs: 86400000
-      jwtRefreshExpirationMs: 604800000
+      jwtSecret: ${JWT_SECRET}
+      jwtExpirationMs: ${JWT_EXPIRATION:86400000}
+      jwtRefreshExpirationMs: ${JWT_REFRESH_EXPIRATION:604800000}
 
 server:
   error:
