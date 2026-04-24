@@ -7,12 +7,16 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.time.Instant;
@@ -79,6 +83,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
+    // ------------- NOT FOUND RESOURCE EXCEPTION ---------------------
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetail> handleNotFoundResource(NoResourceFoundException exception, HttpServletRequest request) {
         ErrorCode errorCode = ErrorCode.RESOURCE_NOT_FOUND;
@@ -91,6 +96,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
     }
 
+    // ------------- DISABLED EXCEPTION ----------------------------
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ProblemDetail> handleDisabledException(
             DisabledException ex, HttpServletRequest request
@@ -104,7 +110,40 @@ public class GlobalExceptionHandler {
                 errorCode.getMessage(),
                 request
         );
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
 
+    // ------------- MAXIMUM UPLOAD SIZE EXCEPTION ----------------
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ProblemDetail> handleMaxUploadExceedException(
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.ATTACHMENT_SIZE_EXCEEDED;
+
+        ProblemDetail problem = buildProblemDetail(
+                errorCode.getHttpStatus(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
+
+    // ------------- DISABLED EXCEPTION ----------------------------
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<ProblemDetail> handleIOException(
+            IOException ex, HttpServletRequest request
+    ) {
+
+        ErrorCode errorCode = ErrorCode.ATTACHMENT_UPLOAD_FAILED;
+
+        ProblemDetail problem = buildProblemDetail(
+                errorCode.getHttpStatus(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
     }
 
@@ -124,7 +163,37 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
     }
-    // still more...
+
+    // -------------- MISSING PARAMETER ---------------
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> handleMissingServletRequestParameterException(
+            MissingServletRequestParameterException exception, HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.MISSING_PARAMETER;
+        ProblemDetail problem = buildProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
+
+    // -------------- MISSING PARAMETER ---------------
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAuthorizationDeniedException(
+            AuthorizationDeniedException exception, HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.FORBIDDEN;
+        ProblemDetail problem = buildProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request
+        );
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(problem);
+    }
+
 
     // -----------  GENERIC - 500 - EXCEPTION --------------------
     @ExceptionHandler(Exception.class)

@@ -12,6 +12,7 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "ERR_BAD_REQUEST", "Invalid request"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "ERR_METHOD_NOT_ALLOWED", "HTTP method not allowed"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_NOT_FOUND", "Resource not found"),
+    MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "ERR_MISSING_PARAMETER", "Không tìm thấy tham số cần thiết"),
 
     // ----------- AUTH ERROR --------------------
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ERR_UNAUTHORIZED", "Authentication is required"),
@@ -25,16 +26,16 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "ERR_REFRESH_TOKEN_INVALID", "Refresh token is invalid or expired."),
     OTP_INVALID(HttpStatus.UNAUTHORIZED, "ERR_OTP_INVALID", "OTP is incorrect."),
     OTP_EXPIRED(HttpStatus.UNAUTHORIZED, "ERR_OTP_EXPIRED", "OTP has expired. Please request a new one."),
-    OTP_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "OTP_TOO_MANY_REQUESTS", "Vui lòng chờ 60 giây trước khi tiếp gửi OTP."),
-    OTP_DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "OTP_DAILY_LIMIT_EXCEEDED", "Bạn đã gửi OTP vượt quá giới hạn trong ngày."),
+    OTP_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "ERR_OTP_TOO_MANY_REQUESTS", "Vui lòng chờ 60 giây trước khi tiếp gửi OTP."),
+    OTP_DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "ERR_OTP_DAILY_LIMIT_EXCEEDED", "Bạn đã gửi OTP vượt quá giới hạn trong ngày."),
 
     // ----------- USER ERROR --------------------
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_USER_NOT_FOUND", "User not found."),
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_USER_ALREADY_EXISTS", "User with this email already exists."),
     USER_EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, "ERR_USER_EMAIL_ALREADY_VERIFIED", "Email is already verified."),
     USER_CANNOT_DELETE_SELF(HttpStatus.BAD_REQUEST, "ERR_USER_CANNOT_DELETE_SELF", "You cannot delete your own account."),
-    USER_DISABLED(HttpStatus.UNAUTHORIZED, "USER_DISABLED", "Tài khoản của bạn chưa được kích hoạt do chưa xác thực email."),
-    BAD_CREDENTIALS( HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Email or password is not correct"),
+    USER_DISABLED(HttpStatus.UNAUTHORIZED, "ERR_USER_DISABLED", "Tài khoản của bạn chưa được kích hoạt do chưa xác thực email."),
+    BAD_CREDENTIALS( HttpStatus.UNAUTHORIZED, "ERR_BAD_CREDENTIALS", "Email or password is not correct"),
 
     // ----------- PROJECT ERROR --------------------
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_PROJECT_NOT_FOUND", "Project not found."),
@@ -77,11 +78,12 @@ public enum ErrorCode {
     REACTION_INVALID_TARGET(HttpStatus.BAD_REQUEST, "ERR_REACTION_INVALID_TARGET", "Invalid reaction target."),
 
     // ----------- ATTACHMENT ERROR --------------------
+    FILE_IS_EMPTY(HttpStatus.BAD_REQUEST, "ERR_FILE_IS_EMPTY", "Không tìm thấy file tải lên"),
     ATTACHMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_ATTACHMENT_NOT_FOUND", "Attachment not found."),
     ATTACHMENT_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_ATTACHMENT_UPLOAD_FAILED", "File upload failed."),
     ATTACHMENT_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ERR_ATTACHMENT_DELETE_FAILED", "File deletion failed."),
-    ATTACHMENT_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "ERR_ATTACHMENT_SIZE_EXCEEDED", "File size exceeds the allowed limit."),
-    ATTACHMENT_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ERR_ATTACHMENT_TYPE_NOT_ALLOWED", "File type is not allowed."),
+    ATTACHMENT_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "ERR_ATTACHMENT_SIZE_EXCEEDED", "File tải lên vượt qua giới hạn dung lượng yêu cầu."),
+    ATTACHMENT_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "ERR_ATTACHMENT_TYPE_NOT_ALLOWED", "Vui lòng tải lên đúng dạng tệp tin."),
     ATTACHMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_ATTACHMENT_ACCESS_DENIED", "You do not have permission to access this attachment."),
 
     // ----------- NOTIFICATION ERROR --------------------
