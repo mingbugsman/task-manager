@@ -1,6 +1,6 @@
 package com.MMM.taskmanager.service;
 
-import com.MMM.taskmanager.dto.response.CloudinaryResponse;
+import com.MMM.taskmanager.dto.response.cloudinary.CloudinaryResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface CloudinaryService {

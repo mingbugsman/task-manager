@@ -1,6 +1,6 @@
 package com.MMM.taskmanager.service.impl;
 
-import com.MMM.taskmanager.dto.response.CloudinaryResponse;
+import com.MMM.taskmanager.dto.response.cloudinary.CloudinaryResponse;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.service.CloudinaryService;

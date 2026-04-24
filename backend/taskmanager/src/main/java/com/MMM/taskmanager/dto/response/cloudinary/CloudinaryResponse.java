@@ -1,4 +1,4 @@
-package com.MMM.taskmanager.dto.response;
+package com.MMM.taskmanager.dto.response.cloudinary;
 
 public record CloudinaryResponse(
         String publicId,
