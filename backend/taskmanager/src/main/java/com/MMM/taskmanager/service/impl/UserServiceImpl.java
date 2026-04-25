@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     UserMapper userMapper;
     CloudinaryService cloudinaryService;
+    PasswordEncoder encoder;
 
     @Override
     public PageResponse<UserResponse> getUsers(int page, int size, String sortBy) {
@@ -77,9 +79,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (request.getAvatar() != null && !request.getAvatar().isEmpty()) {
-//            if (foundUser.getAvatarUrl() != null) {
-//               // call delete cloudinary service delete old avatar file
-//            }
+            deleteAvatarIfItExists(foundUser);
            CloudinaryResponse cloudinaryResponse = cloudinaryService.uploadAvatar(request.getAvatar());
            foundUser.setAvatarUrl(cloudinaryResponse.url());
         }
@@ -88,19 +88,46 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUserForAdmin(String userId, UserForAdminRequest request) {
-
+    public void updateUserForAdmin(Long userId, UserForAdminRequest request) {
+        User foundUser = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        userMapper.updateUserFromDTO(request, foundUser);
+        if (request.getAvatar() != null && !request.getAvatar().isEmpty()) {
+            deleteAvatarIfItExists(foundUser);
+            CloudinaryResponse cloudinaryResponse = cloudinaryService.uploadAvatar(request.getAvatar());
+            foundUser.setAvatarUrl(cloudinaryResponse.url());
+        }
+        userRepository.save(foundUser);
     }
-
-    @Override
     public void createUserForAdmin(UserForAdminRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
 
+            throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+        }
+
+
+        User newUser = userMapper.toEntity(request);
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            newUser.setPasswordHash(encoder.encode(request.getPassword()));
+        } else {
+            newUser.setPasswordHash(encoder.encode("123456"));
+        }
+
+        if (request.getAvatar() != null && !request.getAvatar().isEmpty()) {
+            CloudinaryResponse cloudinaryResponse = cloudinaryService.uploadAvatar(request.getAvatar());
+            newUser.setAvatarUrl(cloudinaryResponse.url());
+        }
+
+        userRepository.save(newUser);
     }
 
     @Override
     public void setStatusUser(Long userId, String status) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        user.setStatus(status);
+        userRepository.save(user);
 
     }
 
@@ -115,5 +142,11 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private void deleteAvatarIfItExists(User user) {
+        if (user.getAvatarUrl() != null) {
+            cloudinaryService.deleteFile(user.getAvatarUrl());
+        }
     }
 }

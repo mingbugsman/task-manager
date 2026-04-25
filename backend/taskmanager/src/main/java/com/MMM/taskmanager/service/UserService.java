@@ -12,7 +12,7 @@ public interface UserService {
     UserDetailResponse getUser(Long userId);
     UserDetailResponse getMe();
     void updateMe(UserUpdateRequest request);
-    void updateUserForAdmin(String userId,UserForAdminRequest request);
+    void updateUserForAdmin(Long userId, UserForAdminRequest request);
     void createUserForAdmin(UserForAdminRequest request);
     void setStatusUser(Long userId, String status);
     void deleteForeverUser(Long userId);
