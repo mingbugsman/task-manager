@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -27,12 +29,14 @@ public class UserController {
     private final UserService userService;
 
     @Operation(summary = "Lấy danh sách người dùng (Phân trang)", description = "Dành cho Admin để quản lý danh sách User")
-    @PreAuthorize("hasRole('Admin')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "userId") String sortBy) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Quyền hiện tại: " + auth.getAuthorities());
         return ResponseEntity.ok(ApiResponse.ok(userService.getUsers(page, size, sortBy)));
     }
 

@@ -17,10 +17,13 @@ import com.MMM.taskmanager.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,7 +40,9 @@ public class UserServiceImpl implements UserService {
     CloudinaryService cloudinaryService;
     PasswordEncoder encoder;
 
+
     @Override
+    @Cacheable(value = "users", key = "{#page, #size, #sortBy}")
     public PageResponse<UserResponse> getUsers(int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(sortBy).descending());
         Page<User> userPage = userRepository.findAll(pageable);
@@ -56,6 +61,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "user_detail", key = "#userId")
     public UserDetailResponse getUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -65,12 +71,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "user_detail", key = "T(com.MMM.taskmanager.util.SecurityUtils).getCurrentUserId()")
     public UserDetailResponse getMe() {
         User foundUser = getYourAccount();
         return userMapper.toDetailResponse(foundUser);
     }
 
     @Override
+    @CacheEvict(value = "user_detail", key = "T(com.MMM.taskmanager.util.SecurityUtils).getCurrentUserId()")
     public void updateMe(UserUpdateRequest request) {
         User foundUser = getYourAccount();
 
@@ -88,6 +96,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user_detail", key = "#userId")
     public void updateUserForAdmin(Long userId, UserForAdminRequest request) {
         User foundUser = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -99,6 +108,7 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.save(foundUser);
     }
+
     public void createUserForAdmin(UserForAdminRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
 
@@ -125,6 +135,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "user_detail", key = "#userId")
     public void setStatusUser(Long userId, String status) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -134,9 +145,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheEvict(value = {"user_detail", "users"}, allEntries = true)
     public void deleteForeverUser(Long userId) {
         userRepository.deleteById(userId);
     }
+
 
     private User getYourAccount() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

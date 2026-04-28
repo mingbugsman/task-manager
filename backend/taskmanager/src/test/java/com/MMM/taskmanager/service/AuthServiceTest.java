@@ -154,7 +154,7 @@ class AuthServiceTest {
 
         // 3. Mock DB và JWT
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
-        when(jwtUtils.generateAccessTokenFromEmail(anyString())).thenReturn("mock-access-token");
+        when(jwtUtils.generateTokenFromAuthentication(auth)).thenReturn("mock-access-token");
         when(refreshTokenService.createRefreshToken(mockUser.getUserId())).thenReturn(rtk);
 
         // 4. Act
