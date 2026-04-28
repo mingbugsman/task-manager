@@ -16,3 +16,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsL
 ### Lấy thông tin người dùng bằng userId truong hop dung
 GET {{host}}/api/v1/user/4
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM2OTkxOSwiZXhwIjoxNzc3NDU2MzE5LCJyb2xlIjoiVVNFUiJ9.nOhoc_UU9lqTWuF2P2kmbblENpny7x6DpPjGmn0sUkw
+
+### Delete user
+DELETE {{host}}/api/v1/user/6
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM2OTkxOSwiZXhwIjoxNzc3NDU2MzE5LCJyb2xlIjoiVVNFUiJ9.nOhoc_UU9lqTWuF2P2kmbblENpny7x6DpPjGmn0sUkw
+
+

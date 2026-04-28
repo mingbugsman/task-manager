@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Getter
 @Setter
 public class UserForAdminRequest {
-    String username;
+    String userName;
     String email;
     String password;
     MultipartFile avatar;

@@ -107,7 +107,9 @@ public class UserServiceImpl implements UserService {
 
 
         User newUser = userMapper.toEntity(request);
-
+        if (request.getUserName().isBlank()) {
+            newUser.setUserName("default_user");
+        }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             newUser.setPasswordHash(encoder.encode(request.getPassword()));
         } else {
