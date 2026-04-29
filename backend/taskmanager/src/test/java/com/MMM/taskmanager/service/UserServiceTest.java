@@ -1,6 +1,7 @@
 package com.MMM.taskmanager.service;
 
 import com.MMM.taskmanager.dto.request.user.UserForAdminRequest;
+import com.MMM.taskmanager.dto.request.user.UserUpdateRequest;
 import com.MMM.taskmanager.dto.response.cloudinary.CloudinaryResponse;
 import com.MMM.taskmanager.dto.response.user.UserDetailResponse;
 import com.MMM.taskmanager.dto.response.user.UserResponse;
@@ -70,7 +71,7 @@ public class UserServiceTest {
 
 
     @Test
-    @DisplayName("getUser - Success: Trả về user detail khi tìm thấy ID")
+    @DisplayName("getUser - Success: Return user after sucessfully found by id")
     void getUser_Success() {
         // Arrange
         Long userId = 1L;
@@ -90,7 +91,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("getUser - Fail: Ném ra AppException khi không tìm thấy User")
+    @DisplayName("getUser - Fail: Throw error when not found user")
     void getUser_UserNotFound_ThrowsException() {
         // Arrange
         Long userId = 99L;
@@ -104,7 +105,7 @@ public class UserServiceTest {
 
 
     @Test
-    @DisplayName("getUsers - Success: Trả về PageResponse chính xác")
+    @DisplayName("getUsers - Success: return PageResponse")
     void getUsers_Success() {
         // Arrange
         int page = 1;
@@ -134,7 +135,7 @@ public class UserServiceTest {
     // ================== TEST CREATE USER FOR ADMIN ==================
 
     @Test
-    @DisplayName("createUserForAdmin - Fail: Ném lỗi nếu Email đã tồn tại")
+    @DisplayName("createUserForAdmin - Fail: Throw error user found - existed email")
     void createUserForAdmin_EmailExists_ThrowsException() {
         // Arrange
         UserForAdminRequest request = new UserForAdminRequest();
@@ -149,7 +150,7 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("createUserForAdmin - Success: Tạo user mới với avatar")
+    @DisplayName("createUserForAdmin - Success: Create user with avatar")
     void createUserForAdmin_SuccessWithAvatar() {
         // Arrange
         UserForAdminRequest request = new UserForAdminRequest();
@@ -188,7 +189,7 @@ public class UserServiceTest {
     // ================== TEST GET ME (Mocking SecurityContext) ==================
 
     @Test
-    @DisplayName("getMe - Success: Trả về thông tin user đang đăng nhập")
+    @DisplayName("getMe - Success: return information logged-in user")
     void getMe_Success() {
         // Arrange
         mockSecurityContext(1L);
@@ -221,5 +222,113 @@ public class UserServiceTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
 
         SecurityContextHolder.setContext(securityContext);
+    }
+
+    @Test
+    @DisplayName("updateMe - Success: Successfully update name and avatar")
+    void updateMe_SuccessWithAvatar() {
+        // Arrange
+        mockSecurityContext(1L);
+
+        User oldUser = new User();
+        oldUser.setUserId(1L);
+        oldUser.setUserName("Old Name");
+        oldUser.setAvatarUrl("http://old-avatar.png");
+
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setUserName("Updated Name");
+
+        MultipartFile mockFile = mock(MultipartFile.class);
+        request.setAvatar(mockFile);
+
+        CloudinaryResponse cloudResponse = new CloudinaryResponse(
+                "new_pub_id",
+                "http://new-avatar.png",
+                "jpg",
+                1024L,
+                "dummy"
+        );
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(oldUser));
+        when(mockFile.isEmpty()).thenReturn(false);
+        when(cloudinaryService.uploadAvatar(mockFile)).thenReturn(cloudResponse);
+
+        // Act
+        userService.updateMe(request);
+
+        // Assert
+        assertEquals("Updated Name", oldUser.getUserName());
+        assertEquals("http://new-avatar.png", oldUser.getAvatarUrl());
+
+        verify(cloudinaryService, times(1)).deleteFile("http://old-avatar.png");
+
+        verify(userRepository, times(1)).save(oldUser);
+    }
+
+    @Test
+    @DisplayName("updateUserForAdmin - Fail: Throw error user not found")
+    void updateUserForAdmin_UserNotFound_ThrowsException() {
+        // Arrange
+        Long userId = 99L;
+        UserForAdminRequest request = new UserForAdminRequest();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        AppException exception = assertThrows(AppException.class, () -> userService.updateUserForAdmin(userId, request));
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+
+        verify(userRepository, never()).save(any());
+        verify(cloudinaryService, never()).uploadAvatar(any());
+    }
+
+    @Test
+    @DisplayName("updateUserForAdmin - Success: Admin update info without avatar")
+    void updateUserForAdmin_SuccessWithoutAvatar() {
+        // Arrange
+        Long userId = 1L;
+        UserForAdminRequest request = new UserForAdminRequest();
+        request.setUserName("Admin Updated Name");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        doNothing().when(userMapper).updateUserFromDTO(request, mockUser);
+
+        // Act
+        userService.updateUserForAdmin(userId, request);
+
+        // Assert
+        verify(userMapper, times(1)).updateUserFromDTO(request, mockUser);
+        verify(cloudinaryService, never()).uploadAvatar(any());
+        verify(userRepository, times(1)).save(mockUser);
+    }
+
+    // ================== TEST SET STATUS ==================
+    @Test
+    @DisplayName("setStatusUser - Success: Successfully update status")
+    void setStatusUser_Success() {
+        // Arrange
+        Long userId = 1L;
+        String newStatus = "BANNED";
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+        // Act
+        userService.setStatusUser(userId, newStatus);
+        // Assert
+        assertEquals("BANNED", mockUser.getStatus());
+        verify(userRepository, times(1)).save(mockUser);
+    }
+
+    @Test
+    @DisplayName("deleteForeverUser - Success: Call function deleteById of Repository")
+    void deleteForeverUser_Success() {
+        // Arrange
+        Long userId = 1L;
+
+        // Act
+        userService.deleteForeverUser(userId);
+
+        // Assert
+        verify(userRepository, times(1)).deleteById(userId);
     }
 }
