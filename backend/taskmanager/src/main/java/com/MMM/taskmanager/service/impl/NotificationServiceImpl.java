@@ -4,6 +4,7 @@ import com.MMM.taskmanager.dto.request.notification.SystemNotificationRequest;
 import com.MMM.taskmanager.dto.response.notification.NotificationResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
 import com.MMM.taskmanager.entity.Notification;
+import com.MMM.taskmanager.entity.User;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.mapper.NotificationMapper;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -30,8 +32,10 @@ import java.util.List;
 @RequiredArgsConstructor
 
 public class NotificationServiceImpl implements NotificationService {
+    private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+//    private final SseEmitterManager sseEmitterManager;
 
     private static final String CACHE_UNREAD_COUNT = "notification:unread_count:";
 
@@ -106,12 +110,59 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
     public void createSystemNotification(SystemNotificationRequest request) {
+        List<User> targetUsers;
 
+        if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
+            targetUsers = userRepository.findAll();
+        } else {
+            targetUsers = userRepository.findAllById(request.getUserIds());
+        }
+        List<Notification> notifications = targetUsers.stream()
+                .map(user -> Notification.builder()
+                        .user(user)
+                        .title(request.getTitle())
+                        .message(request.getMessage())
+                        .type("SYSTEM")
+                        .isRead(false)
+                        .build())
+                .toList();
+
+        notificationRepository.saveAll(notifications);
+        notifications.forEach(notification -> {
+            NotificationResponse response = notificationMapper.toResponse(notification);
+
+            // Push SSE realtime for user if it online and push to email
+         //   sseEmitterManager.sendToUser(notification.getUser().getUserId(), response);
+        });
+        log.info("Created {} system notifications", notifications.size());
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = CACHE_UNREAD_COUNT, key = "#userId")
     public void createNotification(Long userId, String title, String message, String type, String entityType, Long entityId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .title(title)
+                .message(message)
+                .type(type)
+                .entityType(entityType)
+                .entityId(entityId)
+                .isRead(false)
+                .build();
+
+        Notification saved = notificationRepository.save(notification);
+
+        // Push SSE realtime for user if it online and email if user config
+        NotificationResponse response = notificationMapper.toResponse(saved);
+     //   sseEmitterManager.sendToUser(userId, response);
+
+        log.info("Created notification type={} for userId={}", type, userId);
 
     }
 
