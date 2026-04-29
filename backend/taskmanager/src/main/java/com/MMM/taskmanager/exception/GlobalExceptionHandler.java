@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -82,6 +83,28 @@ public class GlobalExceptionHandler {
         log.warn("[Validation] fields={}", errors);
         return ResponseEntity.badRequest().body(problem);
     }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleValidation(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request
+    ) {
+
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                "Tham số truyền vào không đúng kiểu dữ liệu"
+        );
+
+        problemDetail.setTitle("Type Mismatch");
+        problemDetail.setProperty("parameter", ex.getName());
+        problemDetail.setProperty("invalidValue", ex.getValue());
+        problemDetail.setProperty("expectedType", ex.getRequiredType().getSimpleName());
+
+
+        problemDetail.setInstance(URI.create(request.getRequestURI()));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
 
     // ------------- NOT FOUND RESOURCE EXCEPTION ---------------------
     @ExceptionHandler(NoResourceFoundException.class)
@@ -186,7 +209,7 @@ public class GlobalExceptionHandler {
     ) {
         ErrorCode errorCode = ErrorCode.FORBIDDEN;
         ProblemDetail problem = buildProblemDetail(
-                HttpStatus.BAD_REQUEST,
+                HttpStatus.FORBIDDEN,
                 errorCode.getCode(),
                 errorCode.getMessage(),
                 request

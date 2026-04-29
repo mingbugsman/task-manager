@@ -1,6 +1,6 @@
 package com.MMM.taskmanager.service.impl;
 
-import com.MMM.taskmanager.dto.response.CloudinaryResponse;
+import com.MMM.taskmanager.dto.response.cloudinary.CloudinaryResponse;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.service.CloudinaryService;
@@ -61,7 +61,11 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     }
 
     @Override
-    public void deleteFile(String publicId) {
+    public void deleteFile(String url) {
+        String publicId = extractPublicIdFromUrl(url);
+        if (publicId == null) {
+            throw new AppException(ErrorCode.ATTACHMENT_NOT_FOUND);
+        }
         try {
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
         }
@@ -69,6 +73,30 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             throw new AppException(ErrorCode.ATTACHMENT_DELETE_FAILED);
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private String extractPublicIdFromUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+        try {
+            int uploadIndex = url.indexOf("/upload/");
+            if (uploadIndex == -1) {
+                return null;
+            }
+            String path = url.substring(uploadIndex + 8);
+            if (path.matches("^v\\d+/.*")) {
+                path = path.replaceFirst("^v\\d+/", "");
+            }
+            int dotIndex = path.lastIndexOf(".");
+            if (dotIndex != -1) {
+                path = path.substring(0, dotIndex);
+            }
+            return path;
+
+        } catch (Exception e) {
+            return null;
         }
     }
 

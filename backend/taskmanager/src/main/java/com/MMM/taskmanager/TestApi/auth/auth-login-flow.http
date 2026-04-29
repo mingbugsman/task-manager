@@ -19,7 +19,7 @@ Content-Type: application/json
 
 ### 3. Đăng xuất trên thiết bị hiện tại
 POST http://localhost:8080/api/v1/auth/logout
-Authorization: Bearer 7190fddd-afcd-4bf3-a512-d46d12bb9f53
+Authorization: Bearer 286893fd-8da1-446c-b391-ccc3060f6552
 
 ### 4. Đăng xuất khỏi tất cả thiết bị (Logout All)
 # Truyền userId để xóa sạch session/redis liên quan

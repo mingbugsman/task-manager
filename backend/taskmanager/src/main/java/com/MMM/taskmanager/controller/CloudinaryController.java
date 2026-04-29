@@ -1,8 +1,8 @@
 package com.MMM.taskmanager.controller;
 
 
-import com.MMM.taskmanager.dto.response.ApiResponse;
-import com.MMM.taskmanager.dto.response.CloudinaryResponse;
+import com.MMM.taskmanager.dto.response.util.ApiResponse;
+import com.MMM.taskmanager.dto.response.cloudinary.CloudinaryResponse;
 import com.MMM.taskmanager.service.CloudinaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,8 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/cloudinary")

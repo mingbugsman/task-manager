@@ -1,15 +1,12 @@
 package com.MMM.taskmanager.controller;
 
 import com.MMM.taskmanager.dto.request.auth.*;
-import com.MMM.taskmanager.dto.response.ApiResponse;
+import com.MMM.taskmanager.dto.response.util.ApiResponse;
 import com.MMM.taskmanager.dto.response.auth.TokenResponse;
 import com.MMM.taskmanager.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

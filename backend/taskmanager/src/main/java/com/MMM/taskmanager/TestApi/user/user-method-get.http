@@ -1,0 +1,22 @@
+@host=http://localhost:8080
+
+
+### Lấy thông tin cá nhân (Me)
+GET {{host}}/api/v1/user/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM5NDc1MCwiZXhwIjoxNzc3NDgxMTUwLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.3ivtVy1rOS23uVd0clycShtkBCGJj9QXpQWIZSm_-g0
+
+### Lấy danh sách người dùng
+GET {{host}}/api/v1/user
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM5NDc1MCwiZXhwIjoxNzc3NDgxMTUwLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.3ivtVy1rOS23uVd0clycShtkBCGJj9QXpQWIZSm_-g0
+
+### Lấy thông tin người dùng bằng userId truong hop sai
+GET {{host}}/api/v1/user/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM5NDc1MCwiZXhwIjoxNzc3NDgxMTUwLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.3ivtVy1rOS23uVd0clycShtkBCGJj9QXpQWIZSm_-g0
+
+### Lấy thông tin người dùng bằng userId truong hop dung
+GET {{host}}/api/v1/user/4
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM5Mzc2NCwiZXhwIjoxNzc3NDgwMTY0LCJyb2xlcyI6WyJST0xFX0FETUlOIl19.QP2BPhd1AribhF8rLysPfj-zIju_eBb0x9KgP650-ng
+
+### Delete user
+DELETE {{host}}/api/v1/user/6
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzM5NDc1MCwiZXhwIjoxNzc3NDgxMTUwLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.3ivtVy1rOS23uVd0clycShtkBCGJj9QXpQWIZSm_-g0
