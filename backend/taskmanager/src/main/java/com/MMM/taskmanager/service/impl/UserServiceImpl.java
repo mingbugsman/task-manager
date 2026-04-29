@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -78,7 +79,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user_detail", key = "T(com.MMM.taskmanager.util.SecurityUtils).getCurrentUserId()")
+    @Caching(
+            evict = {
+                    @CacheEvict(value = "user_detail", key = "T(com.MMM.taskmanager.util.SecurityUtils).getCurrentUserId()"),
+                    @CacheEvict(value = "users", allEntries = true)
+            }
+    )
     public void updateMe(UserUpdateRequest request) {
         User foundUser = getYourAccount();
 
@@ -96,7 +102,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user_detail", key = "#userId")
+    @Caching(evict = {
+            @CacheEvict(value = "user_detail", key = "#userId"),
+            @CacheEvict(value = "users", allEntries = true)
+    })
     public void updateUserForAdmin(Long userId, UserForAdminRequest request) {
         User foundUser = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -135,7 +144,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @CacheEvict(value = "user_detail", key = "#userId")
+    @Caching(evict = {
+            @CacheEvict(value = "user_detail", key = "#userId"),
+            @CacheEvict(value = "users", allEntries = true)
+    })
     public void setStatusUser(Long userId, String status) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -143,6 +155,7 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
     }
+
 
     @Override
     @CacheEvict(value = {"user_detail", "users"}, allEntries = true)
