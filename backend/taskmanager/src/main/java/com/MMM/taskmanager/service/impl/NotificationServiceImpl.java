@@ -88,6 +88,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         foundNotification.setIsRead(true);
+        notificationRepository.save(foundNotification);
         return notificationMapper.toResponse(foundNotification);
     }
 

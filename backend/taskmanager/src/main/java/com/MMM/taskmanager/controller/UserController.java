@@ -8,6 +8,7 @@ import com.MMM.taskmanager.dto.response.util.ApiResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
 import com.MMM.taskmanager.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
 @Tag(name = "User", description = "Quản lý người dùng: Đọc thông tin, cập nhật, thêm người dùng, xóa hoặc cập nhật trạng thái người dùng")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
