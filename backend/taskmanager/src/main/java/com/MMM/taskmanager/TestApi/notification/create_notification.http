@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:8080/api/v1
+@user_accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc3NTIzODY2LCJleHAiOjE3Nzc2MTAyNjYsInJvbGUiOlsiUk9MRV9VU0VSIl19.cUTpfR5dnB79mUvAsWitxbbNETjsPWCXyje6LL_uktw
+@admin_accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzUyMzkxNiwiZXhwIjoxNzc3NjEwMzE2LCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.VlNLp9WoIG-u4O8KQ-EYUmBR8BS1hbjo8zpfX6KKSs0
+@notificationId = 2
+
+###
+POST {{baseUrl}}/notifications/system
+Authorization: Bearer {{admin_accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Bảo trì hệ thống",
+  "message": "Hệ thống sẽ bảo trì vào 22:00 ngày 01/05/2025, vui lòng lưu công việc trước khi bảo trì.",
+  "userIds": [1,2,3]
+}
+
+###
+POST {{baseUrl}}/notifications/system
+Authorization: Bearer {{admin_accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Cập nhật tính năng mới",
+  "message": "Chúng tôi vừa ra mắt tính năng quản lý dự án nâng cao. Hãy khám phá ngay!",
+  "userIds": null
+}
+
+###
+POST {{baseUrl}}/notifications/system
+Authorization: Bearer {{admin_accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Cảnh báo người dùng",
+  "message": "Vui lòng không spam OTP trong hệ thống. Bạn đã vượt qua giới hạn nhất định trong ngày.",
+  "userIds": [7]
+}
+
+### User call system noti -> except 403
+POST {{baseUrl}}/notifications/system
+Authorization: Bearer {{user_accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Test unauthorized",
+  "message": "User thường không được tạo system notification",
+  "userIds": null
+}
+
+###
+POST {{baseUrl}}/notifications/system
+Authorization: Bearer {{admin_accessToken}}
+Content-Type: application/json
+
+{
+  "title": "",
+  "message": "Message không có title",
+  "userIds": null
+}

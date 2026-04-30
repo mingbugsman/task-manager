@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:8080/api/v1
+@user_accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc3NTIzODY2LCJleHAiOjE3Nzc2MTAyNjYsInJvbGUiOlsiUk9MRV9VU0VSIl19.cUTpfR5dnB79mUvAsWitxbbNETjsPWCXyje6LL_uktw
+@admin_accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzUyMzkxNiwiZXhwIjoxNzc3NjEwMzE2LCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.VlNLp9WoIG-u4O8KQ-EYUmBR8BS1hbjo8zpfX6KKSs0
+@notificationId = 2
+
+
+### xem toan bo thong bao cua nguoi dung dang dang nhap
+GET {{baseUrl}}/notifications?page=0&size=20
+Authorization: Bearer {{user_accessToken}}
+
+### xem toan bo thong bao da xem
+GET {{baseUrl}}/notifications?isRead=true&page=0&size=20
+Authorization: Bearer {{user_accessToken}}
+
+### xem so luong thong bao chua xem
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{user_accessToken}}
+
+
+### mark as read
+PATCH {{baseUrl}}/notifications/3/read
+Authorization: Bearer {{user_accessToken}}
+
+### mark all as read
+PATCH {{baseUrl}}/notifications/read-all
+Authorization: Bearer {{user_accessToken}}
+
+
+### delete notification
+DELETE {{baseUrl}}/notifications/{{notificationId}}
+Authorization: Bearer {{user_accessToken}}
+
+### mark notification which is not existed
+PATCH {{baseUrl}}/notifications/99999/read
+Authorization: Bearer {{user_accessToken}}
+
+### delete noti which is not existed
+DELETE {{baseUrl}}/notifications/99999
+Authorization: Bearer {{user_accessToken}}
+
+###
+GET {{baseUrl}}/notifications/subscribe?token={{user_accessToken}}
+Authorization: Bearer {{user_accessToken}}
+Accept: text/event-stream
