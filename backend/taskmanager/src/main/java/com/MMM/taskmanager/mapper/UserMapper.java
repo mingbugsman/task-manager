@@ -13,6 +13,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "Spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
+
+    @Mapping(target = "roleGlobal", source = "roleGlobal", defaultValue = "USER")
     User toEntity(UserForAdminRequest request);
 
     UserResponse toResponse(User user);

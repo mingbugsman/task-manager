@@ -7,6 +7,15 @@ Content-Type: application/json
   "password": "NewPassword789!"
 }
 
+### 1.1. user login 
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "ming18380@gmail.com",
+  "password": "m/ng2k56"
+}
+
 
 ### 2. Refresh Token khi Access Token hết hạn
 POST http://localhost:8080/api/v1/auth/refresh-token
