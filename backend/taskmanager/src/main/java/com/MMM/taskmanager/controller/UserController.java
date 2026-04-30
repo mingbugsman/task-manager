@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/user")
+@RequestMapping("/api/v1/users")
 @Tag(name = "User", description = "Quản lý người dùng: Đọc thông tin, cập nhật, thêm người dùng, xóa hoặc cập nhật trạng thái người dùng")
 public class UserController {
 

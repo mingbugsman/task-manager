@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.service.impl;
 
+import com.MMM.taskmanager.config.SseEmitterManager;
 import com.MMM.taskmanager.dto.request.notification.SystemNotificationRequest;
 import com.MMM.taskmanager.dto.response.notification.NotificationResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
@@ -12,9 +13,9 @@ import com.MMM.taskmanager.repository.NotificationRepository;
 import com.MMM.taskmanager.repository.UserRepository;
 import com.MMM.taskmanager.service.NotificationService;
 import com.MMM.taskmanager.util.SecurityUtils;
-import lombok.AccessLevel;
+
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -23,7 +24,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -35,7 +35,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
-//    private final SseEmitterManager sseEmitterManager;
+    private final SseEmitterManager sseEmitterManager;
 
     private static final String CACHE_UNREAD_COUNT = "notification:unread_count:";
 
@@ -130,12 +130,16 @@ public class NotificationServiceImpl implements NotificationService {
                 .toList();
 
         notificationRepository.saveAll(notifications);
-        notifications.forEach(notification -> {
-            NotificationResponse response = notificationMapper.toResponse(notification);
+        NotificationResponse response = notificationMapper.toResponse(notifications.get(0));
+        if (request.getUserIds() == null || request.getUserIds().isEmpty()) {
+            sseEmitterManager.broadcastToAll(response);
+        } else {
+            notifications.forEach(notification -> {
+                // Push SSE realtime for user if it online and push to email
+                sseEmitterManager.sendToUser(notification.getUser().getUserId(), response);
+            });
+        }
 
-            // Push SSE realtime for user if it online and push to email
-         //   sseEmitterManager.sendToUser(notification.getUser().getUserId(), response);
-        });
         log.info("Created {} system notifications", notifications.size());
     }
 
@@ -160,7 +164,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         // Push SSE realtime for user if it online and email if user config
         NotificationResponse response = notificationMapper.toResponse(saved);
-     //   sseEmitterManager.sendToUser(userId, response);
+        sseEmitterManager.sendToUser(userId, response);
 
         log.info("Created notification type={} for userId={}", type, userId);
 
