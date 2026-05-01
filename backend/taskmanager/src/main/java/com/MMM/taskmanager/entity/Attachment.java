@@ -2,6 +2,9 @@ package com.MMM.taskmanager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Attachment {
+public class Attachment{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +35,9 @@ public class Attachment {
 
     @Column(name = "entity_type", nullable = false, length = 50)
     private String entityType; // "Task", "Project"
+
+    @Column(name = "entity_id", nullable = false)
+    private Long entityId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_attachments_user"))

@@ -13,6 +13,7 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "ERR_METHOD_NOT_ALLOWED", "HTTP method not allowed"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_NOT_FOUND", "Resource not found"),
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "ERR_MISSING_PARAMETER", "Không tìm thấy tham số cần thiết"),
+    INVALID_ENTITY_TYPE(HttpStatus.BAD_REQUEST, "ERR_INVALID_ENTITY_TYPE", "Lỗi không hợp hệ loại tập tin"),
 
     // ----------- AUTH ERROR --------------------
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ERR_UNAUTHORIZED", "Authentication is required"),
