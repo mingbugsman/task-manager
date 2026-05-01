@@ -67,7 +67,6 @@ public enum ErrorCode {
     // ----------- TASK LABEL ERROR --------------------
     TASK_LABEL_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_TASK_LABEL_NOT_FOUND", "Task label not found."),
     TASK_LABEL_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_TASK_LABEL_ALREADY_EXISTS", "Label is already assigned to this task."),
-
     // ----------- COMMENT ERROR --------------------
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_COMMENT_NOT_FOUND", "Comment not found."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_COMMENT_ACCESS_DENIED", "You do not have permission to modify this comment."),
