@@ -27,12 +27,12 @@ public class AttachmentController {
             @PathVariable String entityType,
             @PathVariable Long entityId) {
 
-        List<AttachmentResponse> result = attachmentService.getAttachments(entityType, entityId);
-        return ResponseEntity.ok(ApiResponse.ok(result));
+       var data = attachmentService.getAttachments(entityType, entityId);
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
 
-    // POST /api/v1/{entityType}/{entityId}/attachments
+
     @PostMapping(value = "/{entityType}/{entityId}/attachments",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<AttachmentResponse>> uploadAttachment(
@@ -40,12 +40,12 @@ public class AttachmentController {
             @PathVariable Long entityId,
             @RequestPart("file") MultipartFile file) {
 
-        AttachmentResponse result = attachmentService.uploadAttachment(entityType, entityId, file);
+        var data =  attachmentService.uploadAttachment(entityType, entityId, file);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.created(result));
+                .body(ApiResponse.created(data));
     }
 
-    // DELETE /api/v1/attachments/{attachmentId}
+
     @DeleteMapping("/attachments/{attachmentId}")
     public ResponseEntity<ApiResponse<Void>> deleteAttachment(
             @PathVariable Long attachmentId) {
@@ -54,7 +54,7 @@ public class AttachmentController {
         return ResponseEntity.ok(ApiResponse.ok("Attachment deleted successfully"));
     }
 
-    // GET /api/v1/attachments/{attachmentId}/download
+
     @GetMapping("/attachments/{attachmentId}/download")
     public ResponseEntity<Void> downloadAttachment(
             @PathVariable Long attachmentId) {
