@@ -13,6 +13,7 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "ERR_METHOD_NOT_ALLOWED", "HTTP method not allowed"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_NOT_FOUND", "Resource not found"),
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "ERR_MISSING_PARAMETER", "Không tìm thấy tham số cần thiết"),
+    INVALID_ENTITY_TYPE(HttpStatus.BAD_REQUEST, "ERR_INVALID_ENTITY_TYPE", "Lỗi không hợp hệ loại tập tin"),
 
     // ----------- AUTH ERROR --------------------
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ERR_UNAUTHORIZED", "Authentication is required"),
@@ -66,7 +67,6 @@ public enum ErrorCode {
     // ----------- TASK LABEL ERROR --------------------
     TASK_LABEL_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_TASK_LABEL_NOT_FOUND", "Task label not found."),
     TASK_LABEL_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_TASK_LABEL_ALREADY_EXISTS", "Label is already assigned to this task."),
-
     // ----------- COMMENT ERROR --------------------
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_COMMENT_NOT_FOUND", "Comment not found."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_COMMENT_ACCESS_DENIED", "You do not have permission to modify this comment."),
