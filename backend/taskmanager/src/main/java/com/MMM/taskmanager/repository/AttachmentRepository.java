@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
 
     List<Attachment> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(
-            AttachmentEntityType entityType, Long entityId);
+            String entityType, Long entityId);
 
     Optional<Attachment> findByAttachmentIdAndUser_UserId(
             Long attachmentId, Long userId);
@@ -28,5 +28,5 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
             @Param("entityType") AttachmentEntityType entityType,
             @Param("entityId") Long entityId);
 
-    long countByEntityTypeAndEntityId(AttachmentEntityType entityType, Long entityId);
+    long countByEntityTypeAndEntityId(String entityType, Long entityId);
 }

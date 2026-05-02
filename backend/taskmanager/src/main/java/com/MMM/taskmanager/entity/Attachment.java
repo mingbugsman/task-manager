@@ -27,7 +27,7 @@ public class Attachment{
     @Column(name = "file_url", nullable = false, columnDefinition = "TEXT")
     private String fileUrl;
 
-    @Column(name = "file_type", length = 50)
+    @Column(name = "file_type", length = 150)
     private String fileType; // image/png, application/pdf, ...
 
     @Column(name = "file_size")

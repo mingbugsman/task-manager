@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AttachmentServiceImplTest {
+class AttachmentServiceTest {
 
     @Mock
     private AttachmentRepository attachmentRepository;
@@ -101,7 +101,7 @@ class AttachmentServiceImplTest {
         void getAttachments_shouldReturnList() {
             // given
             when(attachmentRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(
-                    AttachmentEntityType.TASK, 10L))
+                    AttachmentEntityType.TASK.toString(), 10L))
                     .thenReturn(List.of(mockAttachment));
             when(attachmentMapper.toResponseList(List.of(mockAttachment)))
                     .thenReturn(List.of(mockAttachmentResponse));
@@ -114,7 +114,7 @@ class AttachmentServiceImplTest {
             assertThat(result.get(0).getAttachmentId()).isEqualTo(1L);
             assertThat(result.get(0).getFileName()).isEqualTo("test.pdf");
             verify(attachmentRepository)
-                    .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(AttachmentEntityType.TASK, 10L);
+                    .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(AttachmentEntityType.TASK.toString(), 10L);
         }
 
         @Test
@@ -122,7 +122,7 @@ class AttachmentServiceImplTest {
         void getAttachments_whenEmpty_shouldReturnEmptyList() {
             // arrange
             when(attachmentRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(
-                    AttachmentEntityType.TASK, 10L))
+                    AttachmentEntityType.TASK.toString(), 10L))
                     .thenReturn(List.of());
             when(attachmentMapper.toResponseList(List.of())).thenReturn(List.of());
 

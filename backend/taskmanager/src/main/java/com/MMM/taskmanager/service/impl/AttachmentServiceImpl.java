@@ -52,7 +52,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         AttachmentEntityType type = AttachmentEntityType.fromPathVariable(entityType);
 
         List<Attachment> attachments = attachmentRepository
-                .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(type, entityId);
+                .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(type.toString(), entityId);
 
         return attachmentMapper.toResponseList(attachments);
 
@@ -115,7 +115,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         AttachmentEntityType type = AttachmentEntityType.fromPathVariable(entityType);
 
         List<Attachment> attachments = attachmentRepository
-                .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(type, entityId);
+                .findByEntityTypeAndEntityIdOrderByCreatedAtDesc(type.toString(), entityId);
 
         attachments.forEach(attachment -> {
              cloudinaryService.deleteFile(attachment.getFileUrl());
@@ -125,6 +125,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         attachmentRepository.deleteAllByEntityTypeAndEntityId(type, entityId);
         log.info("Deleted all attachments for entityType={} entityId={}", type, entityId);
     }
+
 
 
     private void validateFile(MultipartFile file) {
