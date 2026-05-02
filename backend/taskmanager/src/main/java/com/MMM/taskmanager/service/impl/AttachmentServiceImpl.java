@@ -89,19 +89,28 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     public void deleteAttachment(Long attachmentId) {
         Long userId = SecurityUtils.getCurrentUserId();
+        User foundUser = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        Attachment attachment = attachmentRepository.findByAttachmentIdAndUser_UserId(attachmentId, userId)
+        Attachment attachment;
+
+        if (foundUser.getRoleGlobal().equals("ADMIN")) {
+            attachment = attachmentRepository.findById(attachmentId)
                     .orElseThrow(() -> new AppException(ErrorCode.ATTACHMENT_NOT_FOUND));
+        } else {
+
+            attachment = attachmentRepository.findByAttachmentIdAndUser_UserId(attachmentId, userId)
+                    .orElseThrow(() -> new AppException(ErrorCode.ATTACHMENT_NOT_FOUND));
+        }
 
         cloudinaryService.deleteFile(attachment.getFileUrl());
-
         attachmentRepository.delete(attachment);
-        log.info("Deleted attachment id={} by userId={}", attachmentId, userId);
+        log.info("Deleted attachment id={} by userId={} isAdmin={}",
+                attachmentId, userId, foundUser.getRoleGlobal().equals("ADMIN"));
     }
-
     @Override
     public String getDownloadUrl(Long attachmentId) {
         Attachment attachment = attachmentRepository.findByAttachmentId(attachmentId)

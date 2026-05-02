@@ -262,6 +262,9 @@ class AttachmentServiceTest {
             try (MockedStatic<SecurityUtils> securityUtils = Mockito.mockStatic(SecurityUtils.class)) {
                 securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
 
+                mockUser.setRoleGlobal("USER");
+
+                when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
                 when(attachmentRepository.findByAttachmentIdAndUser_UserId(1L, 1L))
                         .thenReturn(Optional.of(mockAttachment));
 
@@ -271,6 +274,35 @@ class AttachmentServiceTest {
                 // then
                 verify(cloudinaryService).deleteFile(mockAttachment.getFileUrl());
                 verify(attachmentRepository).delete(mockAttachment);
+                verify(attachmentRepository, never()).findById(anyLong());
+            }
+        }
+
+        @Test
+        @DisplayName("Admin xóa attachment của user khác thành công")
+        void deleteAttachment_whenAdmin_shouldDelete() {
+            // given
+            try (MockedStatic<SecurityUtils> securityUtils = Mockito.mockStatic(SecurityUtils.class)) {
+                securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(2L);
+
+                User adminUser = User.builder()
+                        .userId(2L)
+                        .roleGlobal("ADMIN")
+                        .build();
+
+                when(userRepository.findById(2L)).thenReturn(Optional.of(adminUser));
+                when(attachmentRepository.findById(1L))
+                        .thenReturn(Optional.of(mockAttachment));
+
+                // when
+                attachmentService.deleteAttachment(1L);
+
+                // then
+                verify(cloudinaryService).deleteFile(mockAttachment.getFileUrl());
+                verify(attachmentRepository).delete(mockAttachment);
+                // Admin dùng findById, không dùng findByAttachmentIdAndUser_UserId
+                verify(attachmentRepository, never())
+                        .findByAttachmentIdAndUser_UserId(anyLong(), anyLong());
             }
         }
 
@@ -279,8 +311,14 @@ class AttachmentServiceTest {
         void deleteAttachment_whenNotOwner_shouldThrowException() {
             // given
             try (MockedStatic<SecurityUtils> securityUtils = Mockito.mockStatic(SecurityUtils.class)) {
-                securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(2L); // user khác
+                securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(2L);
 
+                User otherUser = User.builder()
+                        .userId(2L)
+                        .roleGlobal("USER")
+                        .build();
+
+                when(userRepository.findById(2L)).thenReturn(Optional.of(otherUser));
                 when(attachmentRepository.findByAttachmentIdAndUser_UserId(1L, 2L))
                         .thenReturn(Optional.empty());
 
@@ -305,6 +343,9 @@ class AttachmentServiceTest {
             try (MockedStatic<SecurityUtils> securityUtils = Mockito.mockStatic(SecurityUtils.class)) {
                 securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(1L);
 
+                mockUser.setRoleGlobal("USER");
+
+                when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
                 when(attachmentRepository.findByAttachmentIdAndUser_UserId(99L, 1L))
                         .thenReturn(Optional.empty());
 
@@ -321,7 +362,31 @@ class AttachmentServiceTest {
                 verify(attachmentRepository, never()).delete(any());
             }
         }
+
+        @Test
+        @DisplayName("Ném AppException khi user không tồn tại")
+        void deleteAttachment_whenUserNotFound_shouldThrowException() {
+            // given
+            try (MockedStatic<SecurityUtils> securityUtils = Mockito.mockStatic(SecurityUtils.class)) {
+                securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(99L);
+
+                when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+                // when & then
+                assertThatThrownBy(() -> attachmentService.deleteAttachment(1L))
+                        .isInstanceOf(AppException.class)
+                        .satisfies(ex -> {
+                            AppException appException = (AppException) ex;
+                            assertThat(appException.getErrorCode())
+                                    .isEqualTo(ErrorCode.USER_NOT_FOUND);
+                        });
+
+                verify(attachmentRepository, never()).delete(any());
+                verify(cloudinaryService, never()).deleteFile(any());
+            }
+        }
     }
+
 
     // getDownloadUrl
     @Nested
