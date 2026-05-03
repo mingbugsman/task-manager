@@ -31,7 +31,8 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     Page<ActivityLog> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
     @Modifying
-    @Query("DELETE FROM ActivityLog a WHERE a.createdAt <: before")
+
+    @Query("DELETE FROM ActivityLog a WHERE a.createdAt < :before")
     int deleteByCreatedAtBefore(@Param("before")LocalDateTime before);
 
     // internal - count log by project

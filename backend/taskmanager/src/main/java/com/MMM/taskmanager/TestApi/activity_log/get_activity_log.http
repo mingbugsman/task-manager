@@ -1,0 +1,134 @@
+### ============================================================
+### ACTIVITY LOG APIs - HTTP TEST FILE (GET only)
+### ============================================================
+
+@baseUrl = http://localhost:8080/api/v1
+@token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc3ODI3NjQ1LCJleHAiOjE3Nzc5MTQwNDUsInJvbGUiOlsiUk9MRV9VU0VSIl19.Gjq5M-POWxQ7bS4MnSaSifR3G_B5HjqFJzMY1eRDxvY
+@adminToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3NzgyNzU5MiwiZXhwIjoxNzc3OTEzOTkyLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.idj_kVwb8UMLNEzQwhgTrlAicaFTklE_LApjY-2b3O8
+
+### ============================================================
+### 1. GET /activities — Lấy log theo entityType + entityId
+###    Lấy tất cả log của TASK có id=1
+### ============================================================
+
+GET {{baseUrl}}/activities?entityType=TASK&entityId=1&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 2. GET /activities — Lấy log của USER có id=4
+### ============================================================
+
+GET {{baseUrl}}/activities?entityType=USER&entityId=4&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 3. GET /activities — Lấy log của COMMENT có id=1
+### ============================================================
+
+GET {{baseUrl}}/activities?entityType=COMMENT&entityId=1&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 4. GET /activities — Lấy log của ATTACHMENT có id=1
+### ============================================================
+
+GET {{baseUrl}}/activities?entityType=ATTACHMENT&entityId=1&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 5. GET /activities/{activityLogId} — Xem chi tiết 1 log
+### ============================================================
+
+GET {{baseUrl}}/activities/21
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 6. GET /activities/{activityLogId} — Xem chi tiết log id=5
+### ============================================================
+
+GET {{baseUrl}}/activities/25
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 7. GET /projects/{projectId}/activities — Log theo project
+###    project_id = NULL trong data nên sẽ trả rỗng
+### ============================================================
+
+GET {{baseUrl}}/projects/1/activities?page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 8. GET /users/{userId}/activities — Log của user 4 (Admin)
+### ============================================================
+
+GET {{baseUrl}}/users/4/activities?page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 9. GET /users/{userId}/activities — Log của user 7
+### ============================================================
+
+GET {{baseUrl}}/users/7/activities?page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### 10. GET /users/me/activities — Log của chính mình
+### ============================================================
+
+GET {{baseUrl}}/users/me/activities?page=0&size=20
+Authorization: Bearer {{adminToken}}
+
+###
+
+### ============================================================
+### 11. GET /users/me/activities — Phân trang page=1
+### ============================================================
+
+GET {{baseUrl}}/users/me/activities?page=1&size=5
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================================
+### EDGE CASES
+### ============================================================
+
+### 12. GET /activities — entityType không hợp lệ → expect 400
+GET {{baseUrl}}/activities?entityType=INVALID&entityId=1&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### 13. GET /activities — Thiếu entity_id → expect 400
+GET {{baseUrl}}/activities?entityType=TASK&page=0&size=20
+Authorization: Bearer {{token}}
+
+###
+
+### 14. GET /activities/{activityLogId} — id không tồn tại → expect 404
+GET {{baseUrl}}/activities/99999
+Authorization: Bearer {{token}}
+
+###
+
+### 15. GET /users/{userId}/activities — userId không tồn tại → expect 404
+GET {{baseUrl}}/users/99999/activities?page=0&size=20
+Authorization: Bearer {{adminToken}}
