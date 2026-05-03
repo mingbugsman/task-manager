@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.entity;
 
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -25,8 +26,9 @@ public class ActivityLog {
     @Column(name = "action", nullable = false, length = 50)
     private String action; // CREATE, UPDATE, DELETE, MOVE, ...
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 50)
-    private String entityType; // "Task", "Project", "Comment", ...
+    private ActivityLogEntityType entityType; // "Task", "Project", "Comment", ...
 
     @Column(name = "entity_id", nullable = false)
     private Long entityId;
@@ -34,6 +36,13 @@ public class ActivityLog {
     // Lưu JSON string: {"old_status": "Todo", "new_status": "Done"}
     @Column(name = "metadata", columnDefinition = "JSON")
     private String metadata;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_logs_project"))
+    private Project project;
+
+    @Column(name = "ip_address", length = 50)
+    private String ipAddress;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
