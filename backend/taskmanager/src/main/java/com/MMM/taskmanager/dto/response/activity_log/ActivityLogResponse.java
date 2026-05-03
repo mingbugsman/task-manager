@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class ActivityLogResponse {
     private Long activityLogId;
     private Long userId;
-    private String username;
+    private String userName;
     private String avatarUrl;
     private String action;
     private ActivityLogEntityType entityType;

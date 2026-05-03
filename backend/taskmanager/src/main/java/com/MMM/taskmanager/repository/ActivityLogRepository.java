@@ -7,9 +7,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+@Repository
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
 
 
@@ -28,6 +32,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
 
     @Modifying
     @Query("DELETE FROM ActivityLog a WHERE a.createdAt <: before")
+    int deleteByCreatedAtBefore(@Param("before")LocalDateTime before);
 
     // internal - count log by project
     long countByProject_ProjectId(Long projectId);
