@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class BroadTaskResponse implements Serializable {
+public class BoardTaskResponse implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -24,6 +24,5 @@ public class BroadTaskResponse implements Serializable {
     private String assigneeUsername;
     private String assigneeAvatarUrl;
     private List<String> labels;
-    private int commentCount;
-    private int attachmentCount;
+
 }

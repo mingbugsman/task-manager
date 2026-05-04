@@ -34,7 +34,7 @@ public class Project implements Serializable {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
     @Builder.Default
-    private ProjectStatus projectStatus = ProjectStatus.ACTIVE;
+    private ProjectStatus status = ProjectStatus.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", foreignKey = @ForeignKey(name = "fk_projects_created_by"))
