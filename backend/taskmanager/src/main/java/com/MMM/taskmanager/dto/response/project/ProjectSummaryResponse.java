@@ -8,6 +8,7 @@ import lombok.Getter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -25,4 +26,12 @@ public class ProjectSummaryResponse implements Serializable {
     private String createdByUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private int totalTasks;
+    private int todoCount;
+    private int inProgressCount;
+    private int doneCount;
+    private double progressRate;
+    private int memberCount;
+    List<String> memberAvatarUrls;
 }
