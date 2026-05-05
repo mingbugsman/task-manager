@@ -1,0 +1,174 @@
+### ===========================================================================
+### PROJECT MEMBER MODULE - HTTP CLIENT TEST
+### ===========================================================================
+
+@baseUrl   = http://localhost:8080/api/v1
+@token     = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc3OTc0MjI4LCJleHAiOjE3NzgwNjA2MjgsInJvbGUiOlsiUk9MRV9VU0VSIl19.1nFlL8nU3uKK473r7gGoL4FtE2gLelN2YRCjJA_sgKw
+@projectId = 1
+@userId    = 7
+
+### ===========================================================================
+### 1. GET - Lấy danh sách member
+### ===========================================================================
+
+GET {{baseUrl}}/projects/{{projectId}}/members?page=0&size=20
+Authorization: {{token}}
+ 
+### ===========================================================================
+### 2. GET - Filter theo role
+### ===========================================================================
+
+GET {{baseUrl}}/projects/{{projectId}}/members?role=Admin&page=0&size=20
+Authorization: {{token}}
+
+### ===========================================================================
+### 3. GET - Thống kê member theo role
+### ===========================================================================
+
+GET {{baseUrl}}/projects/{{projectId}}/members/statistic
+Authorization: {{token}}
+
+### ===========================================================================
+### 4. POST - Mời MEMBER (ADMIN hoặc LEAD thực hiện)
+### ===========================================================================
+
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "role": "Member"
+}
+
+### ===========================================================================
+### 5. POST - Mời LEAD (chỉ ADMIN thực hiện)
+### ===========================================================================
+
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "role": "Lead"
+}
+
+
+### 6. POST - Mời ADMIN (chỉ ADMIN thực hiện)
+
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "role": "Admin"
+}
+
+### ===========================================================================
+### 7. PATCH - Đổi role thành viên (chỉ ADMIN)
+### ===========================================================================
+
+PATCH {{baseUrl}}/projects/{{projectId}}/members/{{userId}}/role
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "role": "Lead"
+}
+
+### ===========================================================================
+### 8. DELETE - Kick thành viên
+### ===========================================================================
+
+DELETE {{baseUrl}}/projects/{{projectId}}/members/{{userId}}
+Authorization: {{token}}
+
+### ===========================================================================
+### 9. DELETE - Tự rời dự án
+### ===========================================================================
+
+DELETE {{baseUrl}}/projects/{{projectId}}/members/leave
+Authorization: {{token}}
+
+### ===========================================================================
+### EDGE CASES
+### ===========================================================================
+
+### EC-1: userId null -> 400 Bad Request
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": null,
+  "role": "Member"
+}
+
+### EC-2: Role không hợp lệ -> 400 Bad Request
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "role": "INVALID_ROLE"
+}
+
+### EC-3: Mời user đã là member -> 409 Conflict
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": 12,
+  "role": "Member"
+}
+
+### EC-4: LEAD mời ADMIN -> 403 Forbidden
+POST {{baseUrl}}/projects/{{projectId}}/members
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "role": "Admin"
+}
+
+### EC-5: MEMBER đổi role -> 403 Forbidden
+PATCH {{baseUrl}}/projects/{{projectId}}/members/{{userId}}/role
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "role": "Viewer"
+}
+
+### EC-6: ADMIN tự hạ role mình -> 403 Forbidden
+PATCH {{baseUrl}}/projects/{{projectId}}/members/4/role
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "role": "Member"
+}
+
+### EC-7: ADMIN duy nhất leave -> 403 Forbidden
+DELETE {{baseUrl}}/projects/{{projectId}}/members/leave
+Authorization: {{token}}
+
+### EC-8: Tự kick chính mình -> 400 Bad Request
+DELETE {{baseUrl}}/projects/{{projectId}}/members/4
+Authorization: {{token}}
+
+### EC-9: LEAD kick ADMIN -> 403 Forbidden
+DELETE {{baseUrl}}/projects/{{projectId}}/members/4
+Authorization: {{token}}
+
+### EC-10: Project không tồn tại -> 404 Not Found
+GET {{baseUrl}}/projects/99999/members
+Authorization: {{token}}
+
+### EC-11: Không có token -> 401 Unauthorized
+GET {{baseUrl}}/projects/{{projectId}}/members

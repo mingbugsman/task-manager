@@ -2,6 +2,9 @@ package com.MMM.taskmanager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,7 +17,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ProjectMember {
+public class ProjectMember implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,5 +45,19 @@ public class ProjectMember {
     @PrePersist
     protected void onCreate() {
         joinedAt = LocalDateTime.now();
+    }
+
+    public boolean isAdmin() {
+        return "Admin".equalsIgnoreCase(role);
+    }
+
+    /** Kiểm tra thành viên có phải LEAD không */
+    public boolean isLead() {
+        return "Lead".equalsIgnoreCase(role);
+    }
+
+    /** Kiểm tra thành viên có quyền quản lý (ADMIN hoặc LEAD) không */
+    public boolean isManager() {
+        return isAdmin() || isLead();
     }
 }
