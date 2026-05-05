@@ -46,6 +46,7 @@ public enum ErrorCode {
 
     // ----------- PROJECT MEMBER ERROR --------------------
     PROJECT_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_PROJECT_MEMBER_NOT_FOUND", "Project member not found."),
+    PROJECT_MEMBER_INVALID_INVITE(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_INVALID_INVITE", "Project member invalid invite."),
     PROJECT_MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_PROJECT_MEMBER_ALREADY_EXISTS", "User is already a member of this project."),
     PROJECT_MEMBER_INVALID_ROLE(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_INVALID_ROLE", "Invalid project member role."),
     PROJECT_MEMBER_CANNOT_REMOVE_OWNER(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_CANNOT_REMOVE_OWNER", "Cannot remove the project owner."),
