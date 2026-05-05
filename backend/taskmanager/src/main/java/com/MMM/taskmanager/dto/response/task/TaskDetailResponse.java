@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.dto.response.task;
 
+import com.MMM.taskmanager.dto.response.user.UserSummaryResponse;
 import lombok.*;
 
 import java.io.Serial;
