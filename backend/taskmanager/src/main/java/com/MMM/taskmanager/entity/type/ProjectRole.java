@@ -1,5 +1,7 @@
 package com.MMM.taskmanager.entity.type;
 
+import com.MMM.taskmanager.exception.AppException;
+import com.MMM.taskmanager.exception.ErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -16,7 +18,7 @@ public enum ProjectRole {
     ADMIN("Admin"),
     LEAD("Lead"),
     MEMBER("Member"),
-    VIEWER("Viewer");
+    VIEWER("Reviewer");
 
     private final String displayName;
 
@@ -35,8 +37,8 @@ public enum ProjectRole {
                 return role;
             }
         }
-        throw new IllegalArgumentException(
-                "Role không hợp lệ: '" + value + "'. Các giá trị hợp lệ: ADMIN, LEAD, MEMBER, VIEWER"
+        throw new AppException(
+                ErrorCode.PROJECT_MEMBER_INVALID_ROLE
         );
     }
 

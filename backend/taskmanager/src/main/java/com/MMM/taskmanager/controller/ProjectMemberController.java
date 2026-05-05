@@ -40,7 +40,7 @@ public class ProjectMemberController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        log.debug("GET /projects/{}/members - role={}", projectId, role);
+        log.info("GET /projects/{}/members - role={}", projectId, role);
         PageResponse<ProjectMemberResponse> result =
                 projectMemberService.getMembers(projectId, role, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));

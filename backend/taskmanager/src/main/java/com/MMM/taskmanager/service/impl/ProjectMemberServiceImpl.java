@@ -31,7 +31,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +53,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     )
     public PageResponse<ProjectMemberResponse> getMembers(Long projectId, String role, int page, int size) {
 
-        log.debug("Lấy danh sách member [projectId={}, role={}, page={}, size={}]",
+        log.info("Lấy danh sách member [projectId={}, role={}, page={}, size={}]",
                 projectId, role, page, size);
 
         validateProjectExists(projectId);
@@ -65,6 +67,9 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         Page<ProjectMember> memberPage =
                 projectMemberRepository.findMembersByProjectId(projectId, role, pageable);
 
+
+
+
         List<ProjectMemberResponse> items = memberPage.getContent()
                 .stream()
                 .map(projectMemberMapper::toResponseDTO)
@@ -74,8 +79,28 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "members:statistic", key = "#projectId")
     public MemberStatisticResponse getMemberStatistic(Long projectId) {
-        return null;
+        log.debug("Lấy thống kê member [projectId={}]", projectId);
+
+        validateProjectExists(projectId);
+
+        List<Object[]> grouped = projectMemberRepository.countMembersByRoleGrouped(projectId);
+        Map<String, Long> countMap = new HashMap<>();
+        for (Object[] row : grouped) {
+            countMap.put((String) row[0], (Long) row[1]);
+        }
+
+        long totalMembers = countMap.values().stream().mapToLong(Long::longValue).sum();
+
+        return MemberStatisticResponse.builder()
+                .totalMembers(totalMembers)
+                .adminCount(countMap.getOrDefault("Admin",  0L))
+                .leadCount(countMap.getOrDefault("Lead",    0L))
+                .memberCount(countMap.getOrDefault("Member", 0L))
+                .viewerCount(countMap.getOrDefault("Reviewer", 0L))
+                .build();
     }
 
 
@@ -103,6 +128,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         ProjectRole targetRole = ProjectRole.from(request.getRole());
 
         // Kiểm tra quyền mời
+        System.out.println("quyen han nguoi dung nay la:" + inviterRole.getDisplayName());
         if (!inviterRole.canInvite(targetRole)) {
             throw new AppException(ErrorCode.PROJECT_MEMBER_INVALID_INVITE);
         }
@@ -110,7 +136,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         // Kiểm tra user đã là member chưa
         if (projectMemberRepository.existsByProject_ProjectIdAndUser_UserId(
                 projectId, request.getUserId())) {
-            throw new IllegalStateException("User đã là thành viên của dự án này");
+            throw new AppException(ErrorCode.PROJECT_MEMBER_ALREADY_EXISTS);
         }
 
         Project project = projectRepository.findById(projectId)
@@ -189,7 +215,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         // Không cho phép tự kick chính mình
         if (kickerId.equals(targetUserId)) {
-            throw new IllegalStateException("Không thể tự kick chính mình. Hãy dùng API leave");
+            throw new AppException(ErrorCode.MEMBER_CANNOT_KICK_THEMSELF);
         }
 
         ProjectMember kicker = getMemberOrThrow(projectId, kickerId);
@@ -199,7 +225,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         ProjectRole targetRole = ProjectRole.from(target.getRole());
 
         if (!kickerRole.canKick(targetRole)) {
-            throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);
+            throw new AppException(ErrorCode.MEMBER_CANNOT_KICK_ADMIN);
         }
 
         projectMemberRepository.deleteByProject_ProjectIdAndUser_UserId(projectId, targetUserId);
@@ -217,7 +243,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
             @CacheEvict(value = "members:statistic", key = "#projectId")
     })
     public void leaveProject(Long projectId, Long userId) {
-        log.debug("Leave project [projectId={}, userId={}]", projectId, userId);
+        log.info("Leave project [projectId={}, userId={}]", projectId, userId);
 
         ProjectMember member = getMemberOrThrow(projectId, userId);
 
