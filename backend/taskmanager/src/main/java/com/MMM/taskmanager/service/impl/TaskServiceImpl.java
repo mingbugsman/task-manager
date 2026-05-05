@@ -1,4 +1,4 @@
-package com.MMM.taskmanager.service;
+package com.MMM.taskmanager.service.impl;
 
 import com.MMM.taskmanager.dto.request.task.TaskCreateRequest;
 import com.MMM.taskmanager.dto.request.task.TaskUpdateRequest;
@@ -10,10 +10,14 @@ import com.MMM.taskmanager.entity.Label;
 import com.MMM.taskmanager.entity.Project;
 import com.MMM.taskmanager.entity.Task;
 import com.MMM.taskmanager.entity.User;
+import com.MMM.taskmanager.exception.AppException;
+import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.mapper.TaskMapper;
+import com.MMM.taskmanager.repository.LabelRepository;
 import com.MMM.taskmanager.repository.ProjectRepository;
 import com.MMM.taskmanager.repository.TaskRepository;
 import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -64,7 +68,7 @@ public class TaskServiceImpl implements TaskService {
     @Cacheable(value = "task", key = "#taskId")
     public TaskDetailResponse getTaskDetail(Long taskId) {
         Task task = taskRepository.findDetailById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
         return taskMapper.toDetailResponse(task);
     }
 
@@ -100,15 +104,15 @@ public class TaskServiceImpl implements TaskService {
     @CacheEvict(value = "tasks", allEntries = true)
     public TaskDetailResponse createTask(Long projectId, TaskCreateRequest request, Long reporterId) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
         User reporter = userRepository.findById(reporterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reporter not found: " + reporterId));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         User assignee = null;
         if (request.getAssigneeId() != null) {
             assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Assignee not found: " + request.getAssigneeId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         }
 
         Set<Label> labels = new HashSet<>();
@@ -139,14 +143,14 @@ public class TaskServiceImpl implements TaskService {
     })
     public TaskDetailResponse updateTask(Long taskId, TaskUpdateRequest request, Long updatedByUserId) {
         Task task = taskRepository.findDetailById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
         User updatedBy = userRepository.findById(updatedByUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + updatedByUserId));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (request.getAssigneeId() != null) {
             User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Assignee not found: " + request.getAssigneeId()));
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             task.setAssignee(assignee);
         }
 
@@ -173,9 +177,9 @@ public class TaskServiceImpl implements TaskService {
     })
     public TaskDetailResponse assignTask(Long taskId, Long assigneeUserId) {
         Task task = taskRepository.findDetailById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
         User assignee = userRepository.findById(assigneeUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + assigneeUserId));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         task.setAssignee(assignee);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
@@ -187,7 +191,7 @@ public class TaskServiceImpl implements TaskService {
     })
     public TaskDetailResponse updateDueAt(Long taskId, LocalDateTime dueAt) {
         Task task = taskRepository.findDetailById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
         task.setDueAt(dueAt);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
@@ -199,7 +203,7 @@ public class TaskServiceImpl implements TaskService {
     })
     public TaskDetailResponse updateStatus(Long taskId, String status) {
         Task task = taskRepository.findDetailById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
         task.setStatus(status);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
@@ -212,7 +216,7 @@ public class TaskServiceImpl implements TaskService {
     })
     public void deleteTask(Long taskId) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
         task.setDeletedAt(LocalDateTime.now());
         taskRepository.save(task);
     }
