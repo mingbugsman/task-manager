@@ -4,6 +4,7 @@ import com.MMM.taskmanager.dto.request.user.UserForAdminRequest;
 import com.MMM.taskmanager.dto.request.user.UserUpdateRequest;
 import com.MMM.taskmanager.dto.response.user.UserDetailResponse;
 import com.MMM.taskmanager.dto.response.user.UserResponse;
+import com.MMM.taskmanager.dto.response.user.UserSummaryResponse;
 import com.MMM.taskmanager.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -25,4 +26,5 @@ public interface UserMapper {
 
     void updateUserFromDTO(UserForAdminRequest request, @MappingTarget User user);
 
+    UserSummaryResponse toUserSummary(User user);
 }
