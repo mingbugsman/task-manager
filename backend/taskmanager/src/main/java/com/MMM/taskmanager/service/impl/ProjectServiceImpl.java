@@ -49,9 +49,24 @@ public class ProjectServiceImpl implements ProjectService {
     private static final String CACHE_PROJECT_STATS   = "project:stats";
     private static final String CACHE_PROJECT_BOARD   = "project:board";
 
+
+
     @Override
     public PageResponse<ProjectSummaryResponse> getProjects(String search, int page, int size) {
-        return null;
+        Long userId = SecurityUtils.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Project> pageProject = projectRepository.findActiveProjectsByUserId(userId, search, pageable);
+        List<ProjectSummaryResponse> projectSummaryResponses = projectMapper.toSummaryResponseList(pageProject.getContent());
+
+        return PageResponse.<ProjectSummaryResponse>builder()
+                .items(projectSummaryResponses)
+                .hasNext(pageProject.hasNext())
+                .hasPrevious(pageProject.hasPrevious())
+                .totalElements(pageProject.getTotalElements())
+                .totalPages(pageProject.getTotalPages())
+                .currentPage(page)
+                .pageSize(size)
+                .build();
     }
 
     @Override
