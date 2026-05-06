@@ -48,7 +48,6 @@ export const authOptions: NextAuthOptions = {
           });
 
           const data = res.data.data;
-          
           if (data && data.accessToken) {
            
             const decoded = jwtDecode(data.accessToken) as any;
@@ -63,7 +62,7 @@ export const authOptions: NextAuthOptions = {
           }
           return null;
         } catch (e: any) {
-          throw new Error(e.response?.data?.message || "Đăng nhập thất bại");
+          throw new Error(e.response?.data.detail || "Đăng nhập thất bại");
         }
       }
     })

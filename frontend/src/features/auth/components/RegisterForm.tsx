@@ -40,14 +40,13 @@ export default function RegisterForm() {
     try {
       // Gọi API đăng ký qua cấu hình Axios
       await authApi.register(values);
-      
       // Đăng ký thành công, Spring Boot đã gửi OTP vào email.
       // Chuyển hướng sang trang nhập OTP và truyền email qua query parameters
       // Ví dụ: /verify-otp?email=user@example.com
       router.push(`/verify-otp?email=${encodeURIComponent(values.email)}`);
       
     } catch (error: any) {
-
+        console.log("error: "+error.response)
       setApiError(
         error.response?.data?.message || "Đăng ký thất bại. Vui lòng kiểm tra lại thông tin!"
       );
