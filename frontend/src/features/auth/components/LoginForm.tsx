@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link"; // Bổ sung import Link
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { loginSchema, LoginFormValues } from "../schemas/auth.schema";
 
-// Các UI components từ Shadcn/ui
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -18,7 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/Form";
+} from "@/components/ui/Form"; 
 
 export default function LoginForm() {
   const router = useRouter();
@@ -38,7 +40,6 @@ export default function LoginForm() {
     setIsLoading(true);
     setApiError(null);
     
-   
     const result = await signIn("credentials", {
       redirect: false,
       email: values.email,
@@ -46,11 +47,9 @@ export default function LoginForm() {
     });
 
     if (result?.error) {
-    
       setApiError(result.error);
       setIsLoading(false);
     } else {
-      
       router.push("/dashboard");
       router.refresh();
     }
@@ -105,7 +104,7 @@ export default function LoginForm() {
               )}
             />
 
-            {/* Vùng hiển thị thông báo lỗi từ API */}
+       
             {apiError && (
               <div className="p-3 text-sm font-medium text-red-600 bg-red-50 rounded-md border border-red-200">
                 {apiError}
@@ -118,6 +117,28 @@ export default function LoginForm() {
           </form>
         </Form>
       </CardContent>
+      
+
+      <CardFooter className="flex flex-col space-y-4 mt-2">
+        <div className="text-sm text-center text-muted-foreground">
+          Chưa có tài khoản?{" "}
+          <Link 
+            href="/register" 
+            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+          >
+            Đăng ký ngay
+          </Link>
+        </div>
+        
+        <div className="text-sm text-center text-muted-foreground">
+          <Link 
+            href="/forgot-password" 
+            className="hover:text-gray-900 hover:underline transition-colors"
+          >
+            Quên mật khẩu?
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

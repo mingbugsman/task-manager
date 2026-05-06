@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Tạo schema nhỏ chỉ check email
+
 const forgotPasswordSchema = z.object({
-  email: z.string().min(1, "Email không được để trống").email("Email không đúng định dạng"),
+  email: z.string().min(1, "Email không được để trống").pipe(z.email("Email không đúng định dạng")),
 });
 
 export default function ForgotPasswordForm() {

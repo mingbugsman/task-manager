@@ -5,7 +5,7 @@ export default function VerifyOtpPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
       <div className="w-full max-w-md">
-        {/* Phải bọc Suspense vì VerifyOtpForm có sử dụng hook useSearchParams() để lấy email trên URL */}
+       
         <Suspense fallback={<div className="text-center">Đang tải biểu mẫu...</div>}>
           <VerifyOTPForm />
         </Suspense>
