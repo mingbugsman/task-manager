@@ -54,7 +54,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             SELECT p FROM Project p
             JOIN ProjectMember pm ON pm.project.projectId = p.projectId
             WHERE pm.user.userId = :userId
-            ORDER BY p.updateAt DESC
+            ORDER BY p.updatedAt DESC
             """)
     Page<Project> findAllProjectsByUserId(
             @Param("userId") Long userId,

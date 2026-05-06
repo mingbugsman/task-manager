@@ -134,7 +134,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId).orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
         project.setProjectName(request.getProjectName());
-        project.setProjectDescription(request.getProjectDescription());
+        project.setProjectDescription(request.getProjectDescription() == null ? project.getProjectDescription() : request.getProjectDescription());
         project.setUpdatedBy(userRepository.getReferenceById(userId));
 
         log.info("Updated project id={} by userId={}", projectId, userId);
@@ -171,7 +171,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 
         Project project = projectRepository.findByProjectIdAndDeletedAtIsNotNull(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NEVER_BE_DELETED));
 
         if (!SecurityUtils.isAdmin() &&
                 !project.getCreatedBy().getUserId().equals(userId)) {

@@ -6,14 +6,22 @@ import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
+@Component
 public class SecurityUtils {
 
-    static UserRepository userRepository;
+    private static UserRepository userRepository;
+
+    @Autowired
+    public SecurityUtils(UserRepository userRepository) {
+        SecurityUtils.userRepository = userRepository;
+    }
 
     public static Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
