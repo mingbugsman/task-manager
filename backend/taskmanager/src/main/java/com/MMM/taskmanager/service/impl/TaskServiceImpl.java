@@ -228,6 +228,9 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = "myTasks", allEntries = true)
     })
     public void deleteTasksByProject(Long projectId) {
+        if (!projectRepository.existsById(projectId)) {
+            throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
+        }
         taskRepository.softDeleteByProjectId(projectId, LocalDateTime.now());
     }
 }
