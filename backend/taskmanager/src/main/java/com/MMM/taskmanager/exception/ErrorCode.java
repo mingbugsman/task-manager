@@ -74,6 +74,7 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_COMMENT_NOT_FOUND", "Comment not found."),
     COMMENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_COMMENT_ACCESS_DENIED", "You do not have permission to modify this comment."),
     COMMENT_EMPTY(HttpStatus.BAD_REQUEST, "ERR_COMMENT_EMPTY", "Comment content cannot be empty."),
+    COMMENT_NOT_BELONG_TO_TASK(HttpStatus.BAD_REQUEST, "ERR_COMMENT_NOT_BELONG_TO_TASK", "Comment is not belong to task"),
 
     // ----------- REACTION ERROR --------------------
     REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_REACTION_NOT_FOUND", "Reaction not found."),
