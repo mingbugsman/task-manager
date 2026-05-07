@@ -43,6 +43,7 @@ public enum ErrorCode {
     PROJECT_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_PROJECT_ALREADY_EXISTS", "Project with this name already exists."),
     PROJECT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_PROJECT_ACCESS_DENIED", "You do not have access to this project."),
     PROJECT_OWNER_CANNOT_LEAVE(HttpStatus.BAD_REQUEST, "ERR_PROJECT_OWNER_CANNOT_LEAVE", "Project owner cannot leave the project."),
+    PROJECT_NEVER_BE_DELETED(HttpStatus.BAD_REQUEST, "ERR_PROJECT_NEVER_BE_DELETED", "You can not restore because project never be deleted"),
     MEMBER_CANNOT_KICK_THEMSELF(HttpStatus.BAD_REQUEST, "ERR_MEMBER_CANNOT_KICK_THEMSELF", "Member cannot kick themself."),
     MEMBER_CANNOT_KICK_ADMIN(HttpStatus.BAD_REQUEST, "ERR_MEMBER_CANNOT_KICK_ADMIN", "Member cannot kick Admin"),
     // ----------- PROJECT MEMBER ERROR --------------------

@@ -36,7 +36,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     ProjectRepository projectRepository;
     ActivityLogMapper activityLogMapper;
     ActivityLogRepository activityLogRepository;
-    private final UserRepository userRepository;
+    UserRepository userRepository;
 
     @Override
     public PageResponse<ActivityLogResponse> getActivities(String entityType, Long entityId, int page, int size) {

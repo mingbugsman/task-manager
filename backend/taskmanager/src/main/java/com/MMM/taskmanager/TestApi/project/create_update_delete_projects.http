@@ -1,0 +1,294 @@
+@baseUrl = http://localhost:8080/api/v1
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3ODA4NTA0OCwiZXhwIjoxNzc4MTcxNDQ4LCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.lRxGfJ-m0z3YkV07Q0_yAZh__kUtNJOmjLpfln0a6yw
+
+
+### ========================================
+### 2. CREATE PROJECT
+### POST /projects
+### ========================================
+
+### 2.1 Tạo project thành công (đầy đủ thông tin)
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "Task Manager System",
+  "projectDescription": "A system to manage tasks and projects"
+}
+
+###
+
+### 2.2 Tạo project tối thiểu (không có description)
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "Minimal Project"
+}
+
+###
+
+### 2.3 Thiếu projectName → expect 400
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectDescription": "No name provided"
+}
+
+###
+
+### 2.4 projectName rỗng → expect 400
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "",
+  "projectDescription": "Blank name"
+}
+
+###
+
+### 2.5 projectName vượt 255 ký tự → expect 400
+POST {{baseUrl}}/projects
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "projectDescription": "Name too long"
+}
+
+###
+
+### 2.6 Không có token → expect 401
+POST {{baseUrl}}/projects
+Content-Type: application/json
+
+{
+  "projectName": "Unauthorized Project"
+}
+
+
+### ========================================
+### 3. UPDATE PROJECT
+### PATCH /projects/{projectId}
+### ========================================
+
+### 3.1 Cập nhật project thành công
+PATCH {{baseUrl}}/projects/22
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "Updated Project Name",
+  "projectDescription": "Updated description"
+}
+
+###
+
+### 3.2 Cập nhật chỉ tên (xóa description)
+PATCH {{baseUrl}}/projects/22
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "Only Name Updated"
+}
+
+###
+
+### 3.3 Project không tồn tại → expect 404
+PATCH {{baseUrl}}/projects/99999
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectName": "Ghost Project"
+}
+
+###
+
+### 3.4 Thiếu projectName → expect 400
+PATCH {{baseUrl}}/projects/1
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "projectDescription": "No name"
+}
+
+###
+
+### 3.5 Không phải ADMIN của project → expect 403
+PATCH {{baseUrl}}/projects/1
+Content-Type: application/json
+Authorization: Bearer <token_of_member_role>
+
+{
+  "projectName": "Should be forbidden"
+}
+
+###
+
+### 3.6 Không có token → expect 401
+PATCH {{baseUrl}}/projects/1
+Content-Type: application/json
+
+{
+  "projectName": "Unauthorized update"
+}
+
+
+### ========================================
+### 4. UPDATE PROJECT STATUS
+### PATCH /projects/{projectId}/status
+### ========================================
+
+### 4.1 Chuyển status → ACTIVE
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "ACTIVE"
+}
+
+###
+
+### 4.2 Chuyển status → ON_HOLD
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "ON_HOLD"
+}
+
+###
+
+### 4.3 Chuyển status → COMPLETED
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "COMPLETED"
+}
+
+###
+
+### 4.4 Chuyển status → ARCHIVED
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "ARCHIVED"
+}
+
+###
+
+### 4.5 Status không hợp lệ → expect 400
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "INVALID_STATUS"
+}
+
+###
+
+### 4.6 Thiếu status → expect 400
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{}
+
+###
+
+### 4.7 Project không tồn tại → expect 404
+PATCH {{baseUrl}}/projects/99999/status
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+  "status": "ACTIVE"
+}
+
+###
+
+### 4.8 Không phải ADMIN của project → expect 403
+PATCH {{baseUrl}}/projects/1/status
+Content-Type: application/json
+Authorization: Bearer <token_of_member_role>
+
+{
+  "status": "ACTIVE"
+}
+
+
+### ========================================
+### 5. RESTORE PROJECT
+### PATCH /projects/{projectId}/restore
+### ========================================
+
+### 5.1 Khôi phục project đã xóa thành công
+PATCH {{baseUrl}}/projects/1/restore
+Authorization: {{token}}
+
+###
+
+### 5.2 Project chưa bị xóa → expect lỗi (tùy logic)
+PATCH {{baseUrl}}/projects/2/restore
+Authorization: {{token}}
+
+###
+
+### 5.3 Project không tồn tại → expect 404
+PATCH {{baseUrl}}/projects/99999/restore
+Authorization: {{token}}
+
+###
+
+### 5.4 Không phải người tạo project → expect 403
+PATCH {{baseUrl}}/projects/1/restore
+Authorization: Bearer <token_of_non_creator>
+
+###
+
+### 5.5 Không có token → expect 401
+PATCH {{baseUrl}}/projects/1/restore
+
+
+### ========================================
+### 6. DELETE PROJECT
+### DELETE /projects/{projectId}
+### ========================================
+
+### 6.1 Xóa project thành công (soft delete)
+DELETE {{baseUrl}}/projects/1
+Authorization: {{token}}
+
+###
+
+### 6.2 Project không tồn tại → expect 404
+DELETE {{baseUrl}}/projects/99999
+Authorization: {{token}}
+
+###
+
+### 6.3 Không phải ADMIN của project → expect 403
+DELETE {{baseUrl}}/projects/1
+Authorization: Bearer <token_of_member_role>
+
+###
+
+### 6.4 Không có token → expect 401
+DELETE {{baseUrl}}/projects/1

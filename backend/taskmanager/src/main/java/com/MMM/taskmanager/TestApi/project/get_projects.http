@@ -1,0 +1,34 @@
+### ========================================
+### Project API - HTTP Tests
+### ========================================
+
+@baseUrl = http://localhost:8080/api/v1
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3ODA4NTA0OCwiZXhwIjoxNzc4MTcxNDQ4LCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.lRxGfJ-m0z3YkV07Q0_yAZh__kUtNJOmjLpfln0a6yw
+
+### ========================================
+### 1. GET PROJECT DETAIL
+### GET /projects/{projectId}
+### ========================================
+
+### 1.1 Lấy chi tiết project thành công
+GET {{baseUrl}}/projects/1
+Authorization: {{token}}
+
+###
+
+### 1.2 Project không tồn tại → expect 404
+GET {{baseUrl}}/projects/99999
+Authorization: {{token}}
+
+###
+
+### 1.3 Không có token → expect 401
+GET {{baseUrl}}/projects/1
+
+###
+
+### 1.4 Không phải thành viên dự án → expect 403
+# (Dùng token của user không thuộc project)
+# -> test sau
+GET {{baseUrl}}/projects/1
+Authorization: Bearer {{token}}
