@@ -1,0 +1,100 @@
+### Variables
+@baseUrl = http://localhost:8080/api/v1
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc4MTQ1OTk0LCJleHAiOjE3NzgyMzIzOTQsInJvbGUiOlsiUk9MRV9VU0VSIl19.gsbp7sUpSD-qKCkvg2vKIh6CeDqwVDggOCFyv28IHek
+@projectId = 1
+@labelId = 1
+@taskId = 1
+
+### POST create label - default color
+POST {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Enhancement",
+  "labelDescription": "Cải tiến tính năng hiện có"
+}
+
+###
+
+### POST create label - duplicate name (expect 409)
+POST {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Bug",
+  "colorCode": "#FF0000"
+}
+
+###
+
+### POST create label - invalid color code (expect 400)
+POST {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Feature",
+  "colorCode": "red"
+}
+
+###
+
+### POST create label - blank name (expect 400)
+POST {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "",
+  "colorCode": "#38A169"
+}
+
+###
+
+### PUT update label - success
+PUT {{baseUrl}}/labels/{{labelId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Critical Bug",
+  "labelDescription": "Lỗi nghiêm trọng ảnh hưởng production",
+  "colorCode": "#990000"
+}
+
+###
+
+### PUT update label - only name
+PUT {{baseUrl}}/labels/{{labelId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Dangerous Bug"
+}
+
+###
+
+### PUT update label - not found (expect 404)
+PUT {{baseUrl}}/labels/9999
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Ghost Label",
+  "colorCode": "#000000"
+}
+
+###
+
+### DELETE label - success
+DELETE {{baseUrl}}/labels/{{labelId}}
+Authorization: {{token}}
+
+###
+
+### DELETE label - not found (expect 404)
+DELETE {{baseUrl}}/labels/9999
+Authorization: {{token}}

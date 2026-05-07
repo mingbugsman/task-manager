@@ -1,0 +1,33 @@
+### Variables
+@baseUrl = http://localhost:8080/api/v1
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc4MTQ1OTk0LCJleHAiOjE3NzgyMzIzOTQsInJvbGUiOlsiUk9MRV9VU0VSIl19.gsbp7sUpSD-qKCkvg2vKIh6CeDqwVDggOCFyv28IHek
+@projectId = 1
+@labelId = 1
+@taskId = 1
+
+# ==============================================================
+# LABEL API
+# ==============================================================
+
+### GET all labels by project
+GET {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+
+###
+
+### GET all labels by project (with another project)
+GET {{baseUrl}}/projects/2/labels
+Authorization: {{token}}
+
+###
+
+### POST create label - success
+POST {{baseUrl}}/projects/{{projectId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelName": "Bug",
+  "labelDescription": "Lỗi phần mềm cần sửa ngay",
+  "colorCode": "#FF0000"
+}
