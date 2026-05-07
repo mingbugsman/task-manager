@@ -18,7 +18,7 @@ public interface CommentMapper {
     CommentResponse toResponse(Comment comment);
 
     @Mapping(target = "userId",    source = "userId")
-    @Mapping(target = "fullName",  source = "userName")
+    @Mapping(target = "userName",  source = "userName")
     @Mapping(target = "avatarUrl", source = "avatarUrl")
     UserSummaryResponse toUserSummaryDTO(User user);
 }
