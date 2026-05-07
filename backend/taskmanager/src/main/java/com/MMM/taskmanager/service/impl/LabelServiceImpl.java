@@ -78,6 +78,7 @@ public class LabelServiceImpl implements LabelService {
             throw new AppException(ErrorCode.LABEL_ALREADY_EXISTS);
         }
 
+        System.out.println("COLOR: "+ request.getColorCode());
         label.setLabelName(request.getLabelName());
         label.setLabelDescription(request.getLabelDescription());
         if (request.getColorCode() != null) {

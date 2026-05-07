@@ -16,5 +16,5 @@ public class LabelSummaryResponse implements Serializable {
 
     private Long labelId;
     private String labelName;
-    private String color;
+    private String colorCode;
 }

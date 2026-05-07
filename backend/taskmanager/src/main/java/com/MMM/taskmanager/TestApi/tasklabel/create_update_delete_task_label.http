@@ -1,0 +1,83 @@
+
+# ==============================================================
+# TASK LABEL API
+# ==============================================================
+
+### Variables
+@baseUrl = http://localhost:8080/api/v1
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc4MTQ1OTk0LCJleHAiOjE3NzgyMzIzOTQsInJvbGUiOlsiUk9MRV9VU0VSIl19.gsbp7sUpSD-qKCkvg2vKIh6CeDqwVDggOCFyv28IHek
+@projectId = 1
+@labelId = 1
+@taskId = 1
+
+
+### POST attach label to task - success
+POST {{baseUrl}}/tasks/{{taskId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelId": 2
+}
+
+###
+
+### POST attach label to task - already attached (expect 409)
+POST {{baseUrl}}/tasks/{{taskId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelId": 2
+}
+
+###
+
+### POST attach label to task - label not in same project (expect 400)
+POST {{baseUrl}}/tasks/{{taskId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelId": 8
+}
+
+###
+
+### POST attach label to task - task not found (expect 404)
+POST {{baseUrl}}/tasks/9999/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelId": 1
+}
+
+###
+
+### POST attach label to task - label not found (expect 404)
+POST {{baseUrl}}/tasks/{{taskId}}/labels
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "labelId": 9999
+}
+
+###
+
+### DELETE detach label from task - success
+DELETE {{baseUrl}}/tasks/{{taskId}}/labels/2
+Authorization: {{token}}
+
+###
+
+### DELETE detach label from task - not attached (expect 404)
+DELETE {{baseUrl}}/tasks/{{taskId}}/labels/9999
+Authorization: {{token}}
+
+###
+
+### DELETE detach label from task - task not found (expect 404)
+DELETE {{baseUrl}}/tasks/9999/labels/1
+Authorization: {{token}}

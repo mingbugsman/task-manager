@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-
 public class TaskLabelServiceImpl implements TaskLabelService {
 
     private final TaskLabelRepository taskLabelRepository;

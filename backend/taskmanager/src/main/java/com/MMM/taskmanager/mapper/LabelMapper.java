@@ -13,6 +13,7 @@ import java.util.Set;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface LabelMapper {
 
+
     LabelSummaryResponse toLabelSummary(Label label);
 
     Set<LabelSummaryResponse> toLabelSummarySet(Set<Label> labels);
