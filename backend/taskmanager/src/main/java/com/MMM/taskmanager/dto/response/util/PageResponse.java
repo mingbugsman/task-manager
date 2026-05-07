@@ -19,5 +19,4 @@ public class PageResponse<T> implements Serializable {
     boolean hasNext;
     boolean hasPrevious;
     List<T> items;
-
 }
