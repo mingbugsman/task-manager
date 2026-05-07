@@ -1,0 +1,151 @@
+### ===========================================================================
+### COMMENT MODULE - HTTP CLIENT TEST
+### ===========================================================================
+
+@baseUrl   = http://localhost:8080/api/v1
+@token     = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtaW5nMTgzODBAZ21haWwuY29tIiwiaWF0IjoxNzc4MTQ3ODY0LCJleHAiOjE3NzgyMzQyNjQsInJvbGUiOlsiUk9MRV9VU0VSIl19.nLcvBvWOAmeXRR1WWU9Mbc1PlfxunnbQcpgDZCNpsEo
+@adminToken = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3ODE0ODYxMywiZXhwIjoxNzc4MjM1MDEzLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.QAmyaZJqQMypyyoDvKNLw6IxJOPY1lE0Fpgl4UkTNkE
+@taskId    = 1
+@projectId = 1
+@commentId = 1
+@parentId  = 21
+
+### ===========================================================================
+### 1. GET - Lấy danh sách comment của task
+### ===========================================================================
+
+GET {{baseUrl}}/tasks/{{taskId}}/comments?page=0&size=10
+Authorization: {{token}}
+
+### ===========================================================================
+### 2. GET - Phân trang trang 2
+### ===========================================================================
+
+GET {{baseUrl}}/tasks/{{taskId}}/comments?page=1&size=5
+Authorization: {{token}}
+
+
+### ===========================================================================
+### 4. GET - Lấy replies của một comment
+### ===========================================================================
+
+GET {{baseUrl}}/comments/{{parentId}}/replies
+Authorization: {{token}}
+
+### ===========================================================================
+### 5. POST - Tạo comment gốc cho task
+### ===========================================================================
+
+POST {{baseUrl}}/tasks/{{taskId}}/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Đây là comment gốc cho task",
+  "parentId": null
+}
+
+### ===========================================================================
+### 6. POST - Tạo reply cho comment gốc
+### ===========================================================================
+
+POST {{baseUrl}}/tasks/{{taskId}}/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Đây là reply của comment",
+  "parentId": {{parentId}}
+}
+
+### ===========================================================================
+### 8. PUT - Cập nhật nội dung comment
+### ===========================================================================
+
+PUT {{baseUrl}}/comments/{{commentId}}
+Authorization: {{adminToken}}
+Content-Type: application/json
+
+{
+  "content": "Nội dung đã được chỉnh sửa"
+}
+
+### ===========================================================================
+### 9. DELETE - Xóa mềm comment
+### ===========================================================================
+
+DELETE {{baseUrl}}/comments/{{commentId}}
+Authorization: {{adminToken}}
+
+### ===========================================================================
+### EDGE CASES
+### ===========================================================================
+
+### EC-1: content rỗng -> 400 Bad Request
+POST {{baseUrl}}/tasks/{{taskId}}/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "",
+  "parentId": null
+}
+
+### EC-2: content vượt 1000 ký tự -> 400 Bad Request
+POST {{baseUrl}}/tasks/{{taskId}}/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "parentId": null
+}
+
+### EC-3: reply với parentId thuộc task khác -> 400 Bad Request
+POST {{baseUrl}}/tasks/{{taskId}}/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Reply sai task",
+  "parentId": 99999
+}
+
+### EC-4: task không tồn tại -> 404 Not Found
+POST {{baseUrl}}/tasks/99999/comments
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Comment task không tồn tại",
+  "parentId": null
+}
+
+### EC-5: comment không tồn tại -> 404 Not Found
+PUT {{baseUrl}}/comments/99999
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Cập nhật comment không tồn tại"
+}
+
+### EC-6: sửa comment của người khác -> 403 Forbidden
+PUT {{baseUrl}}/comments/{{commentId}}
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "content": "Cố tình sửa comment người khác"
+}
+
+### EC-7: xóa comment của người khác (không phải ADMIN) -> 403 Forbidden
+DELETE {{baseUrl}}/comments/{{commentId}}
+Authorization: {{token}}
+
+### EC-8: xóa comment đã bị xóa mềm -> 404 Not Found
+DELETE {{baseUrl}}/comments/1
+Authorization: {{token}}
+
+### EC-9: không có token -> 401 Unauthorized
+GET {{baseUrl}}/tasks/{{taskId}}/comments?page=0&size=10
