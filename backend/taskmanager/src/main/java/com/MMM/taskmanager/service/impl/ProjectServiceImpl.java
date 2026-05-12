@@ -4,10 +4,7 @@ import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
 import com.MMM.taskmanager.dto.response.project.*;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
-import com.MMM.taskmanager.entity.Label;
-import com.MMM.taskmanager.entity.Project;
-import com.MMM.taskmanager.entity.ProjectMember;
-import com.MMM.taskmanager.entity.User;
+import com.MMM.taskmanager.entity.*;
 import com.MMM.taskmanager.entity.type.ProjectStatus;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
@@ -141,7 +138,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .getTotalElements();
 
         int totalTasks = taskRepository.countByAssignee_UserIdAndDeletedAtIsNull(userId);
-        int totalInProgress = taskRepository.countByAssignee_UserIdAndStatusAndDeleteAtIsNull(userId, "In Progress");
+        int totalInProgress = taskRepository.countByAssignee_UserIdAndStatusAndDeletedAtIsNull(userId, "In Progress");
 
         // Tính TB tiến độ
         double avgProgressRate = projectRepository
@@ -166,6 +163,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Cacheable(value = CACHE_PROJECT_BOARD, key = "#projectId + ':' + #assigneeId + ':' + #labelId")
     public BoardResponse getBoardByProjectId(Long projectId, Long assigneeId, Long labelId) {
+        List<Task> rs = taskRepository
+                .findBoardTasks(projectId, "Done", assigneeId, labelId);
+        System.out.println("TASK:::" + rs.size());
         Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
         List<String> statuses = List.of("Todo", "In Progress", "Review", "Done");
@@ -178,6 +178,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<BoardColumnResponse> columns = statuses.stream()
                 .map(status -> {
+
                     List<BoardTaskResponse> tasks = taskRepository
                             .findBoardTasks(projectId, status, assigneeId, labelId)
                             .stream()

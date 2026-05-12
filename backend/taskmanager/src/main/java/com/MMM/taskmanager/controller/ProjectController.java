@@ -29,8 +29,6 @@ import org.springframework.web.bind.annotation.*;
 public class ProjectController {
     ProjectService projectService;
 
-
-
     @Operation(
             summary = "Lấy thống kê tổng quan dự án",
             description = "Lấy số liệu tổng quan: tổng dự án, tổng tác vụ, đang thực hiện, TB tiến độ — dùng cho header màn hình Tất Cả Dự Án"
