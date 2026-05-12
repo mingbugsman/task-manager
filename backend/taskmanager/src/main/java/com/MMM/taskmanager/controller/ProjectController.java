@@ -2,7 +2,9 @@ package com.MMM.taskmanager.controller;
 
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
+import com.MMM.taskmanager.dto.response.project.BoardResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectDetailResponse;
+import com.MMM.taskmanager.dto.response.project.ProjectOverallStatsResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectSummaryResponse;
 import com.MMM.taskmanager.dto.response.util.ApiResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
@@ -26,6 +28,53 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Project", description = "API quản lý dự án")
 public class ProjectController {
     ProjectService projectService;
+
+
+
+    @Operation(
+            summary = "Lấy thống kê tổng quan dự án",
+            description = "Lấy số liệu tổng quan: tổng dự án, tổng tác vụ, đang thực hiện, TB tiến độ — dùng cho header màn hình Tất Cả Dự Án"
+    )
+    @GetMapping("/projects/stats")
+    public ResponseEntity<ApiResponse<ProjectOverallStatsResponse>> getProjectStats() {
+        var data = projectService.getProjectStats();
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @Operation(
+            summary = "Lấy danh sách dự án",
+            description = "Lấy danh sách tất cả dự án mà người dùng đang tham gia, hỗ trợ tìm kiếm và phân trang"
+    )
+    @GetMapping("/projects")
+    public ResponseEntity<ApiResponse<PageResponse<ProjectSummaryResponse>>> getProjects(
+            @Parameter(description = "Từ khóa tìm kiếm tên dự án", example = "task-manager")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Số trang (bắt đầu từ 0)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Số lượng mỗi trang", example = "20")
+            @RequestParam(defaultValue = "20") int size) {
+
+        var data = projectService.getProjects(search, page, size);
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    @Operation(
+            summary = "Lấy dữ liệu Kanban board",
+            description = "Lấy toàn bộ dữ liệu để vẽ bảng Kanban gồm 4 cột: Cần Làm, Đang Làm, Đang Review, Hoàn Thành. Hỗ trợ lọc theo người được giao và nhãn"
+    )
+    @GetMapping("/projects/{projectId}/board")
+    public ResponseEntity<ApiResponse<BoardResponse>> getBoardByProjectId(
+            @Parameter(description = "ID của dự án", example = "1")
+            @PathVariable Long projectId,
+            @Parameter(description = "Lọc theo ID người được giao task", example = "1")
+            @RequestParam(required = false) Long assigneeId,
+            @Parameter(description = "Lọc theo ID nhãn", example = "1")
+            @RequestParam(required = false) Long labelId) {
+
+        var data = projectService.getBoardByProjectId(projectId, assigneeId, labelId);
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
 
     @Operation(
             summary = "Xem chi tiết dự án",
