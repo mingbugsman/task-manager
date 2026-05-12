@@ -2,12 +2,11 @@ package com.MMM.taskmanager.service.impl;
 
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
-import com.MMM.taskmanager.dto.response.project.BroadResponse;
-import com.MMM.taskmanager.dto.response.project.ProjectDetailResponse;
-import com.MMM.taskmanager.dto.response.project.ProjectOverallStatsResponse;
-import com.MMM.taskmanager.dto.response.project.ProjectSummaryResponse;
+import com.MMM.taskmanager.dto.response.project.*;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
+import com.MMM.taskmanager.entity.Label;
 import com.MMM.taskmanager.entity.Project;
+import com.MMM.taskmanager.entity.ProjectMember;
 import com.MMM.taskmanager.entity.User;
 import com.MMM.taskmanager.entity.type.ProjectStatus;
 import com.MMM.taskmanager.exception.AppException;
@@ -34,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -56,22 +56,59 @@ public class ProjectServiceImpl implements ProjectService {
 
 
     @Override
+    @Cacheable(value = CACHE_PROJECT_LIST, key = "#root.target.getCurrentUserId() + ':' + #search + ':' + #page + ':' + #size")
     public PageResponse<ProjectSummaryResponse> getProjects(String search, int page, int size) {
-        Long userId = SecurityUtils.getCurrentUserId();
+        Long userId = getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<Project> pageProject = projectRepository.findActiveProjectsByUserId(userId, search, pageable);
+        Page<Project> projectPage = projectRepository
+                .findActiveProjectsByUserId(userId, search, pageable);
 
-        List<ProjectSummaryResponse> projectSummaryResponses = projectMapper.toSummaryResponseList(pageProject.getContent());
+        List<ProjectSummaryResponse> items = projectPage.getContent().stream()
+                .map(project -> {
+                    ProjectSummaryResponse response = projectMapper.toSummaryResponse(project);
+
+                    //  Tính stats cho từng project card
+                    int totalTasks = taskRepository.countTotalByProject(project.getProjectId());
+                    int todoCount = taskRepository.countByProjectAndStatus(project.getProjectId(), "Todo");
+                    int inProgressCount = taskRepository.countByProjectAndStatus(project.getProjectId(), "In Progress");
+
+                    int doneCount = taskRepository.countByProjectAndStatus(project.getProjectId(), "Done");
+                    double progressRate = totalTasks == 0 ? 0
+                            : Math.round((double) doneCount / totalTasks * 100.0);
+
+                    int memberCount = projectMemberRepository.countByProject_ProjectId(project.getProjectId());
+                    List<String> memberAvatarUrls = projectMemberRepository
+                            .findTop3AvatarUrlsByProjectId(project.getProjectId());
+
+                    return ProjectSummaryResponse.builder()
+                            .projectId(response.getProjectId())
+                            .projectName(response.getProjectName())
+                            .projectDescription(response.getProjectDescription())
+                            .status(response.getStatus())
+                            .createdBy(response.getCreatedBy())
+                            .createdByUsername(response.getCreatedByUsername())
+                            .createdAt(response.getCreatedAt())
+                            .updatedAt(response.getUpdatedAt())
+                            .totalTasks(totalTasks)
+                            .todoCount(todoCount)
+                            .inProgressCount(inProgressCount)
+                            .doneCount(doneCount)
+                            .progressRate(progressRate)
+                            .memberCount(memberCount)
+                            .memberAvatarUrls(memberAvatarUrls)
+                            .build();
+                })
+                .toList();
 
         return PageResponse.<ProjectSummaryResponse>builder()
-                .items(projectSummaryResponses)
-                .hasNext(pageProject.hasNext())
-                .hasPrevious(pageProject.hasPrevious())
-                .totalElements(pageProject.getTotalElements())
-                .totalPages(pageProject.getTotalPages())
                 .currentPage(page)
                 .pageSize(size)
+                .totalPages(projectPage.getTotalPages())
+                .totalElements(projectPage.getTotalElements())
+                .hasNext(projectPage.hasNext())
+                .hasPrevious(projectPage.hasPrevious())
+                .items(items)
                 .build();
     }
 
@@ -95,20 +132,89 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    @Cacheable(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()")
     public ProjectOverallStatsResponse getProjectStats() {
-        return null;
+        Long userId = getCurrentUserId();
+
+        int totalProjects = (int) projectRepository
+                .findActiveProjectsByUserId(userId, null, PageRequest.of(0, Integer.MAX_VALUE))
+                .getTotalElements();
+
+        int totalTasks = taskRepository.countByAssignee_UserIdAndDeletedAtIsNull(userId);
+        int totalInProgress = taskRepository.countByAssignee_UserIdAndStatusAndDeleteAtIsNull(userId, "In Progress");
+
+        // Tính TB tiến độ
+        double avgProgressRate = projectRepository
+                .findActiveProjectsByUserId(userId, null, PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent().stream()
+                .mapToDouble(project -> {
+                    int total = taskRepository.countTotalByProject(project.getProjectId());
+                    int done = taskRepository.countByProjectAndStatus(project.getProjectId(), "Done");
+                    return total == 0 ? 0 : (double) done / total * 100;
+                })
+                .average()
+                .orElse(0);
+
+        return ProjectOverallStatsResponse.builder()
+                .totalProjects(totalProjects)
+                .totalTasks(totalTasks)
+                .totalInProgress(totalInProgress)
+                .avgProgressRate(Math.round(avgProgressRate))
+                .build();
     }
 
     @Override
-    public BroadResponse getBoardByProjectId(Long projectId, Long assigneeId, Long labelId) {
-        return null;
+    @Cacheable(value = CACHE_PROJECT_BOARD, key = "#projectId + ':' + #assigneeId + ':' + #labelId")
+    public BoardResponse getBoardByProjectId(Long projectId, Long assigneeId, Long labelId) {
+        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        List<String> statuses = List.of("Todo", "In Progress", "Review", "Done");
+        Map<String, String> displayNames = Map.of(
+                "Todo", "Cần Làm",
+                "In Progress", "Đang Làm",
+                "Review", "Đang Review",
+                "Done", "Hoàn Thành"
+        );
+
+        List<BoardColumnResponse> columns = statuses.stream()
+                .map(status -> {
+                    List<BoardTaskResponse> tasks = taskRepository
+                            .findBoardTasks(projectId, status, assigneeId, labelId)
+                            .stream()
+                            .map(task -> BoardTaskResponse.builder()
+                                    .taskId(task.getTaskId())
+                                    .taskName(task.getTaskName())
+                                    .priority(task.getPriority())
+                                    .dueDate(task.getDueAt())
+                                    .assigneeId(task.getAssignee() != null ? task.getAssignee().getUserId() : null)
+                                    .assigneeUsername(task.getAssignee() != null ? task.getAssignee().getUserName() : null)
+                                    .assigneeAvatarUrl(task.getAssignee() != null ? task.getAssignee().getAvatarUrl() : null)
+                                    .labels(task.getLabels() != null ? task.getLabels().stream().map(Label::getLabelName).toList() : List.of())
+                                    .build())
+                            .toList();
+
+                    return BoardColumnResponse.builder()
+                            .status(status)
+                            .displayName(displayNames.get(status))
+                            .taskCount(tasks.size())
+                            .tasks(tasks)
+                            .build();
+                })
+                .toList();
+
+        return BoardResponse.builder()
+                .projectId(project.getProjectId())
+                .projectName(project.getProjectName())
+                .columns(columns)
+                .build();
     }
 
     @Override
+    @Cacheable(value = CACHE_PROJECT_LIST, key = "'admin:' + #search + ':' + #includeDeleted + ':' + #page + ':' + #size")
     public PageResponse<ProjectSummaryResponse> getAllProjectsForAdmin(String search, boolean includeDeleted, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<Project> projectPage = includeDeleted ? projectRepository.findAllActiveProjectsForAdmin(search, pageable) : projectRepository.findAllProjectsForAdmin(search, pageable);
+        Page<Project> projectPage = !includeDeleted ? projectRepository.findAllActiveProjectsForAdmin(search, pageable) : projectRepository.findAllProjectsForAdmin(search, pageable);
 
         List<ProjectSummaryResponse> items = projectPage.getContent().stream()
                 .map(project -> {
@@ -165,7 +271,13 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project saved = projectRepository.save(project);
 
-        // auto add user creating project with role admin
+        ProjectMember member = ProjectMember.builder()
+                .project(saved)
+                .user(user)
+                .joinedAt(LocalDateTime.now())
+                .role("Admin")
+                .build();
+        projectMemberRepository.save(member);
 
         log.info("Created project id={} by userId={}", saved.getProjectId(), userId);
         return projectMapper.toDetailResponse(saved);
@@ -268,7 +380,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         boolean isSystemAdmin = SecurityUtils.isAdmin();
         boolean isProjectAdmin = projectMemberRepository
-                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "ADMIN");
+                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "Admin");
 
         if (!isSystemAdmin && !isProjectAdmin) {
             throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);

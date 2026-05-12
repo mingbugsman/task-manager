@@ -16,8 +16,8 @@ import java.util.Optional;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    long countByAssignee_UserIdAndDeletedAtIsNull(Long userId);
-    long countByAssignee_UserIdAndStatusAndDeleteAtIsNull(Long userId, String status);
+    int countByAssignee_UserIdAndDeletedAtIsNull(Long userId);
+    int countByAssignee_UserIdAndStatusAndDeleteAtIsNull(Long userId, String status);
 
 
     @Query("""

@@ -11,7 +11,7 @@ import java.util.List;
 @Getter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class BroadResponse implements Serializable {
+public class BoardResponse implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 

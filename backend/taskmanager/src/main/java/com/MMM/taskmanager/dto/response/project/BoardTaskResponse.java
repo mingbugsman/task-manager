@@ -18,7 +18,7 @@ public class BoardTaskResponse implements Serializable {
 
     private Long taskId;
     private String taskName;
-    private String priority;
+    private int priority;
     private LocalDateTime dueDate;
     private Long assigneeId;
     private String assigneeUsername;
