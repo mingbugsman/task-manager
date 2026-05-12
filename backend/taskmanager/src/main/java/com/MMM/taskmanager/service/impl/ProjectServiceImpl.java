@@ -13,7 +13,9 @@ import com.MMM.taskmanager.entity.type.ProjectStatus;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.mapper.ProjectMapper;
+import com.MMM.taskmanager.repository.ProjectMemberRepository;
 import com.MMM.taskmanager.repository.ProjectRepository;
+import com.MMM.taskmanager.repository.TaskRepository;
 import com.MMM.taskmanager.repository.UserRepository;
 import com.MMM.taskmanager.service.ProjectService;
 import com.MMM.taskmanager.util.SecurityUtils;
@@ -43,6 +45,8 @@ public class ProjectServiceImpl implements ProjectService {
     ProjectRepository projectRepository;
     ProjectMapper projectMapper;
     UserRepository userRepository;
+    ProjectMemberRepository projectMemberRepository;
+    TaskRepository taskRepository;
 
     private static final String CACHE_PROJECT_LIST    = "project:list";
     private static final String CACHE_PROJECT_DETAIL  = "project:detail";
@@ -55,7 +59,9 @@ public class ProjectServiceImpl implements ProjectService {
     public PageResponse<ProjectSummaryResponse> getProjects(String search, int page, int size) {
         Long userId = SecurityUtils.getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
+
         Page<Project> pageProject = projectRepository.findActiveProjectsByUserId(userId, search, pageable);
+
         List<ProjectSummaryResponse> projectSummaryResponses = projectMapper.toSummaryResponseList(pageProject.getContent());
 
         return PageResponse.<ProjectSummaryResponse>builder()
@@ -99,6 +105,50 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    public PageResponse<ProjectSummaryResponse> getAllProjectsForAdmin(String search, boolean includeDeleted, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Project> projectPage = includeDeleted ? projectRepository.findAllActiveProjectsForAdmin(search, pageable) : projectRepository.findAllProjectsForAdmin(search, pageable);
+
+        List<ProjectSummaryResponse> items = projectPage.getContent().stream()
+                .map(project -> {
+                    ProjectSummaryResponse response = projectMapper.toSummaryResponse(project);
+
+                    int totalTasks = taskRepository.countTotalByProject(project.getProjectId());
+                    int doneCount = taskRepository.countByProjectAndStatus(project.getProjectId(), "Done");
+                    double progressRate = totalTasks == 0 ? 0 : Math.round((double) doneCount / totalTasks * 100.0);
+                    int memberCount = projectMemberRepository.countByProject_ProjectId(project.getProjectId());
+                    List<String> memberAvatarUrls = projectMemberRepository.findTop3AvatarUrlsByProjectId(project.getProjectId());
+
+                    return ProjectSummaryResponse.builder()
+                            .projectId(response.getProjectId())
+                            .projectName(response.getProjectName())
+                            .projectDescription(response.getProjectDescription())
+                            .status(project.getStatus())
+                            .createdBy(response.getCreatedBy())
+                            .createdByUsername(response.getCreatedByUsername())
+                            .createdAt(response.getCreatedAt())
+                            .updatedAt(response.getUpdatedAt())
+                            .totalTasks(totalTasks)
+                            .doneCount(doneCount)
+                            .progressRate(progressRate)
+                            .memberCount(memberCount)
+                            .memberAvatarUrls(memberAvatarUrls)
+                            .build();
+                }).toList();
+        return PageResponse.<ProjectSummaryResponse>builder()
+                .currentPage(page)
+                .pageSize(size)
+                .totalPages(projectPage.getTotalPages())
+                .totalElements(projectPage.getTotalElements())
+                .hasNext(projectPage.hasNext())
+                .hasPrevious(projectPage.hasPrevious())
+                .items(items)
+                .build();
+
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = {CACHE_PROJECT_LIST, CACHE_PROJECT_STATS},
             key = "#root.target.getCurrentUserId()")
@@ -131,7 +181,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectDetailResponse updateProject(Long projectId, ProjectRequest request) {
         Long userId = getCurrentUserId();
 
-        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId).orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        Project project = getProjectAndCheckPermission(projectId, userId);
 
         project.setProjectName(request.getProjectName());
         project.setProjectDescription(request.getProjectDescription() == null ? project.getProjectDescription() : request.getProjectDescription());
@@ -150,8 +200,8 @@ public class ProjectServiceImpl implements ProjectService {
     })
     public ProjectDetailResponse updateProjectStatus(Long projectId, UpdateProjectStatusRequest request) {
         Long userId = getCurrentUserId();
-        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
-                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        Project project = getProjectAndCheckPermission(projectId, userId);
+
         project.setStatus(request.getStatus());
         project.setUpdatedBy(userRepository.getReferenceById(userId));
 
@@ -198,7 +248,7 @@ public class ProjectServiceImpl implements ProjectService {
     public void deleteProject(Long projectId) {
         Long userId = getCurrentUserId();
 
-        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId).orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+        Project project = getProjectAndCheckPermission(projectId, userId);
 
         project.setDeletedAt(LocalDateTime.now());
         project.setUpdatedBy(userRepository.getReferenceById(userId));
@@ -211,19 +261,19 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
 
-//    private Project getProjectAndCheckPermission(Long projectId, Long userId) {
-//        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
-//                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
-//
-//
-//        boolean isSystemAdmin = SecurityUtils.isAdmin();
-//        boolean isProjectAdmin = projectMemberRepository
-//                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "ADMIN");
-//
-//        if (!isSystemAdmin && !isProjectAdmin) {
-//            throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);
-//        }
-//
-//        return project;
-//    }
+    private Project getProjectAndCheckPermission(Long projectId, Long userId) {
+        Project project = projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+
+
+        boolean isSystemAdmin = SecurityUtils.isAdmin();
+        boolean isProjectAdmin = projectMemberRepository
+                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "ADMIN");
+
+        if (!isSystemAdmin && !isProjectAdmin) {
+            throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);
+        }
+
+        return project;
+    }
 }

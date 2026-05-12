@@ -3,7 +3,9 @@ package com.MMM.taskmanager.controller;
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
 import com.MMM.taskmanager.dto.response.project.ProjectDetailResponse;
+import com.MMM.taskmanager.dto.response.project.ProjectSummaryResponse;
 import com.MMM.taskmanager.dto.response.util.ApiResponse;
+import com.MMM.taskmanager.dto.response.util.PageResponse;
 import com.MMM.taskmanager.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -106,6 +109,26 @@ public class ProjectController {
 
         projectService.deleteProject(projectId);
         return ResponseEntity.ok(ApiResponse.ok("Project deleted successfully"));
+    }
+
+    @Operation(
+            summary = "Admin — Lấy tất cả dự án",
+            description = "Admin xem toàn bộ dự án trong hệ thống, hỗ trợ tìm kiếm và lọc theo trạng thái xóa"
+    )
+    @GetMapping("/admin/projects")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<ProjectSummaryResponse>>> getAllProjectsForAdmin(
+            @Parameter(description = "Từ khóa tìm kiếm", example = "task-manager")
+            @RequestParam(required = false) String search,
+            @Parameter(description = "Bao gồm cả dự án đã xóa", example = "false")
+            @RequestParam(defaultValue = "false") boolean includeDeleted,
+            @Parameter(description = "Số trang", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Số lượng mỗi trang", example = "20")
+            @RequestParam(defaultValue = "20") int size) {
+
+        var data = projectService.getAllProjectsForAdmin(search, includeDeleted, page, size);
+        return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
 }

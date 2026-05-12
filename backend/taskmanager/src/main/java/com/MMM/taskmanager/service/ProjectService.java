@@ -13,6 +13,7 @@ public interface ProjectService {
     ProjectDetailResponse getProjectDetail(Long projectId);
     ProjectOverallStatsResponse getProjectStats();
     BroadResponse getBoardByProjectId(Long projectId, Long assigneeId, Long labelId);
+    PageResponse<ProjectSummaryResponse> getAllProjectsForAdmin(String search, boolean includeDeleted, int page, int size);
 
     // crud project
     ProjectDetailResponse createProject(ProjectRequest request);

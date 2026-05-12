@@ -16,6 +16,29 @@ import java.util.Optional;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    long countByAssignee_UserIdAndDeletedAtIsNull(Long userId);
+    long countByAssignee_UserIdAndStatusAndDeleteAtIsNull(Long userId, String status);
+
+
+    @Query("""
+            SELECT DISTINCT t FROM Task t
+            LEFT JOIN FETCH t.assignee
+            LEFT JOIN FETCH t.labels
+            WHERE t.project.projectId = :projectId
+            AND t.status = :status
+            AND t.deletedAt IS NULL
+            AND (:assigneeId IS NULL OR t.assignee.userId = :assigneeId)
+            AND (:labelId IS NULL OR EXISTS (
+                SELECT l FROM t.labels l WHERE l.labelId = :labelId
+            ))
+            ORDER BY t.createdAt DESC
+            """)
+    List<Task> findBoardTasks(
+            @Param("projectId") Long projectId,
+            @Param("status") String status,
+            @Param("assigneeId") Long assigneeId,
+            @Param("labelId") Long labelId);
+
     // Kanban: lấy task theo project, lọc status, tìm kiếm tên, chưa bị xóa
     @Query("""
             SELECT t FROM Task t
@@ -62,7 +85,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             SELECT COUNT(t) FROM Task t
             WHERE t.project.projectId = :projectId AND t.deletedAt IS NULL
             """)
-    long countTotalByProject(@Param("projectId") Long projectId);
+    int countTotalByProject(@Param("projectId") Long projectId);
 
     @Query("""
             SELECT COUNT(t) FROM Task t
@@ -70,7 +93,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
               AND LOWER(t.status) = LOWER(:status)
               AND t.deletedAt IS NULL
             """)
-    long countByProjectAndStatus(@Param("projectId") Long projectId, @Param("status") String status);
+    int countByProjectAndStatus(@Param("projectId") Long projectId, @Param("status") String status);
 
     @Query("""
             SELECT COUNT(t) FROM Task t
