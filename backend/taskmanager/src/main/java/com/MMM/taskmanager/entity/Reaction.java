@@ -1,5 +1,7 @@
 package com.MMM.taskmanager.entity;
 
+import com.MMM.taskmanager.entity.type.ReactionEntityType;
+import com.MMM.taskmanager.entity.type.ReactionType;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -28,14 +30,16 @@ public class Reaction {
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_reactions_user"))
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "entity_type", nullable = false, length = 50)
-    private String entityType;
+    private ReactionEntityType entityType;
 
     @Column(name = "entity_id", nullable = false)
     private Long entityId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "reaction_type", nullable = false, length = 20)
-    private String reactionType; // LIKE, HEART, SMILE, FIRE
+    private ReactionType reactionType; // LIKE, HEART, SMILE, FIRE
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
