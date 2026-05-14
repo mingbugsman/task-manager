@@ -14,6 +14,28 @@ import java.util.Optional;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
+
+    // query all project by search and pageable
+    @Query("""
+            SELECT p FROM Project p
+            WHERE (:search IS NULL OR LOWER(p.projectName) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY p.updatedAt DESC
+            """)
+    Page<Project> findAllProjectsForAdmin(@Param("search") String search, Pageable pageable);
+
+
+    // query active project for admin
+    @Query("""
+        SELECT p FROM Project p
+        WHERE p.deletedAt IS NULL
+        AND (:search IS NULL OR LOWER(p.projectName) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY p.updatedAt DESC
+        """)
+    Page<Project> findAllActiveProjectsForAdmin(
+            @Param("search") String search,
+            Pageable pageable);
+
+
     // get api/v1/projects
     @Query("""
             SELECT p FROM Project p

@@ -6,19 +6,17 @@ import com.MMM.taskmanager.dto.response.task.TaskDetailResponse;
 import com.MMM.taskmanager.dto.response.task.TaskStatisticResponse;
 import com.MMM.taskmanager.dto.response.task.TaskSummaryResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
-import com.MMM.taskmanager.entity.Label;
-import com.MMM.taskmanager.entity.Project;
-import com.MMM.taskmanager.entity.Task;
-import com.MMM.taskmanager.entity.User;
+import com.MMM.taskmanager.entity.*;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.mapper.TaskMapper;
-import com.MMM.taskmanager.repository.LabelRepository;
-import com.MMM.taskmanager.repository.ProjectRepository;
-import com.MMM.taskmanager.repository.TaskRepository;
-import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.repository.*;
 import com.MMM.taskmanager.service.TaskService;
+import com.MMM.taskmanager.util.SecurityUtils;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -34,24 +32,35 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TaskServiceImpl implements TaskService {
 
-    private final TaskRepository taskRepository;
-    private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
-    private final LabelRepository labelRepository;
-    private final TaskMapper taskMapper;
+    TaskRepository taskRepository;
+    ProjectRepository projectRepository;
+    UserRepository userRepository;
+    LabelRepository labelRepository;
+    TaskMapper taskMapper;
+    ProjectMemberRepository projectMemberRepository;
 
+    // =========================================================
+    // GET /tasks?projectId=...
+    // Chỉ member trong dự án hoặc ADMIN mới xem được
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "tasks", key = "'project:' + #projectId + ':status:' + #status + ':search:' + #search + ':page:' + #page + ':size:' + #size")
     public PageResponse<TaskSummaryResponse> getTasksByProject(Long projectId, String status, String search, int page, int size) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        checkProjectMemberOrAdmin(projectId, userId);
+
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<Task> taskPage = taskRepository.findByProjectIdAndFilters(projectId, status, search, pageable);
         List<TaskSummaryResponse> items = taskMapper.toSummaryResponseList(taskPage.getContent());
+
         return PageResponse.<TaskSummaryResponse>builder()
                 .currentPage(page)
                 .pageSize(size)
@@ -63,15 +72,26 @@ public class TaskServiceImpl implements TaskService {
                 .build();
     }
 
+    // =========================================================
+    // GET /tasks/{taskId}
+    // Chỉ member trong dự án hoặc ADMIN mới xem được
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "task", key = "#taskId")
     public TaskDetailResponse getTaskDetail(Long taskId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        checkProjectMemberOrAdmin(task.getProject().getProjectId(), userId);
+
         return taskMapper.toDetailResponse(task);
     }
 
+    // =========================================================
+    // GET /tasks/my-tasks
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "myTasks", key = "#userId")
@@ -80,6 +100,9 @@ public class TaskServiceImpl implements TaskService {
         return taskMapper.toSummaryResponseList(tasks);
     }
 
+    // =========================================================
+    // GET /tasks/statistic?projectId=...
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "taskStatistic", key = "#projectId")
@@ -90,6 +113,7 @@ public class TaskServiceImpl implements TaskService {
         long inProgress = taskRepository.countByProjectAndStatus(projectId, "In Progress");
         long done = taskRepository.countByProjectAndStatus(projectId, "Done");
         long overdue = taskRepository.countOverdueByProject(projectId, now);
+
         return TaskStatisticResponse.builder()
                 .projectId(projectId)
                 .totalTasks(total)
@@ -100,6 +124,10 @@ public class TaskServiceImpl implements TaskService {
                 .build();
     }
 
+    // =========================================================
+    // POST /tasks
+    // Assignee phải là member trong dự án
+    // =========================================================
     @Override
     @CacheEvict(value = "tasks", allEntries = true)
     public TaskDetailResponse createTask(Long projectId, TaskCreateRequest request, Long reporterId) {
@@ -111,8 +139,15 @@ public class TaskServiceImpl implements TaskService {
 
         User assignee = null;
         if (request.getAssigneeId() != null) {
+            // Kiểm tra assignee phải là member của project
             assignee = userRepository.findById(request.getAssigneeId())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+            boolean isAssigneeMember = projectMemberRepository
+                    .existsByProject_ProjectIdAndUser_UserId(projectId, request.getAssigneeId());
+            if (!isAssigneeMember) {
+                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
+            }
         }
 
         Set<Label> labels = new HashSet<>();
@@ -133,9 +168,13 @@ public class TaskServiceImpl implements TaskService {
                 .build();
 
         Task saved = taskRepository.save(task);
+        log.info("Created task id={} in projectId={} by reporterId={}", saved.getTaskId(), projectId, reporterId);
         return taskMapper.toDetailResponse(saved);
     }
 
+    // =========================================================
+    // PUT /tasks/{taskId}
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
@@ -149,6 +188,14 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (request.getAssigneeId() != null) {
+            //  Kiểm tra assignee phải là member của project
+            boolean isAssigneeMember = projectMemberRepository
+                    .existsByProject_ProjectIdAndUser_UserId(
+                            task.getProject().getProjectId(), request.getAssigneeId());
+            if (!isAssigneeMember) {
+                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
+            }
+
             User assignee = userRepository.findById(request.getAssigneeId())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             task.setAssignee(assignee);
@@ -167,9 +214,14 @@ public class TaskServiceImpl implements TaskService {
         task.setUpdatedBy(updatedBy);
 
         Task saved = taskRepository.save(task);
+        log.info("Updated task id={} by userId={}", taskId, updatedByUserId);
         return taskMapper.toDetailResponse(saved);
     }
 
+    // =========================================================
+    // PATCH /tasks/{taskId}/assign
+    //  Assignee phải là member trong dự án
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
@@ -178,36 +230,73 @@ public class TaskServiceImpl implements TaskService {
     public TaskDetailResponse assignTask(Long taskId, Long assigneeUserId) {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        // Kiểm tra assignee phải là member của project
+        boolean isAssigneeMember = projectMemberRepository
+                .existsByProject_ProjectIdAndUser_UserId(
+                        task.getProject().getProjectId(), assigneeUserId);
+        if (!isAssigneeMember) {
+            throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
+        }
+
         User assignee = userRepository.findById(assigneeUserId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
         task.setAssignee(assignee);
+        log.info("Assigned task id={} to userId={}", taskId, assigneeUserId);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
 
+    // =========================================================
+    // PATCH /tasks/{taskId}/due-at
+    // ✅ Chỉ Admin hệ thống, Admin project hoặc Lead mới được
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
             @CacheEvict(value = "tasks", allEntries = true)
     })
     public TaskDetailResponse updateDueAt(Long taskId, LocalDateTime dueAt) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        //  Chỉ Admin hệ thống, Admin project hoặc Lead mới được
+        checkProjectManagerOrAdmin(task.getProject().getProjectId(), userId);
+
         task.setDueAt(dueAt);
+        log.info("Updated dueAt task id={} by userId={}", taskId, userId);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
 
+    // =========================================================
+    // PATCH /tasks/{taskId}/status
+    // Chỉ Admin hệ thống, Admin project hoặc Lead mới được
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
             @CacheEvict(value = "tasks", allEntries = true)
     })
     public TaskDetailResponse updateStatus(Long taskId, String status) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        // Chỉ Admin hệ thống, Admin project hoặc Lead mới được
+        checkProjectManagerOrAdmin(task.getProject().getProjectId(), userId);
+
         task.setStatus(status);
+        log.info("Updated status task id={} to status={} by userId={}", taskId, status, userId);
         return taskMapper.toDetailResponse(taskRepository.save(task));
     }
 
+    // =========================================================
+    // DELETE /tasks/{taskId}
+    // Chỉ Lead, Admin project hoặc ADMIN hệ thống mới xóa được
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
@@ -215,12 +304,23 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = "myTasks", allEntries = true)
     })
     public void deleteTask(Long taskId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
+
+        //  Chỉ Lead, Admin project hoặc ADMIN hệ thống mới xóa được
+        checkProjectManagerOrAdmin(task.getProject().getProjectId(), userId);
+
         task.setDeletedAt(LocalDateTime.now());
         taskRepository.save(task);
+        log.info("Soft deleted task id={} by userId={}", taskId, userId);
     }
 
+    // =========================================================
+    // DELETE /tasks/project/{projectId}
+    //  Chỉ Admin project hoặc ADMIN hệ thống mới xóa được
+    // =========================================================
     @Override
     @Caching(evict = {
             @CacheEvict(value = "tasks", allEntries = true),
@@ -228,9 +328,45 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = "myTasks", allEntries = true)
     })
     public void deleteTasksByProject(Long projectId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
         if (!projectRepository.existsById(projectId)) {
             throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
         }
+
+        //  Chỉ Admin project hoặc ADMIN hệ thống mới xóa được toàn bộ task
+        checkProjectManagerOrAdmin(projectId, userId);
+
         taskRepository.softDeleteByProjectId(projectId, LocalDateTime.now());
+        log.info("Soft deleted all tasks in projectId={} by userId={}", projectId, userId);
+    }
+
+    // =========================================================
+    // Helper — Kiểm tra user là member hoặc ADMIN hệ thống
+    // =========================================================
+    private void checkProjectMemberOrAdmin(Long projectId, Long userId) {
+        if (SecurityUtils.isAdmin()) return;
+
+        boolean isMember = projectMemberRepository
+                .existsByProject_ProjectIdAndUser_UserId(projectId, userId);
+        if (!isMember) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    // =========================================================
+    // Helper — Kiểm tra user là Admin/Lead project hoặc ADMIN hệ thống
+    // =========================================================
+    private void checkProjectManagerOrAdmin(Long projectId, Long userId) {
+        if (SecurityUtils.isAdmin()) return;
+
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndUserId(projectId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
+
+        // Dùng isManager() có sẵn trong entity — Admin hoặc Lead
+        if (!member.isManager()) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
     }
 }

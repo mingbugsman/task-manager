@@ -3,15 +3,15 @@
 ### ========================================
 
 @baseUrl = http://localhost:8080/api/v1
-@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3ODA4NTA0OCwiZXhwIjoxNzc4MTcxNDQ4LCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.lRxGfJ-m0z3YkV07Q0_yAZh__kUtNJOmjLpfln0a6yw
-
+@token = Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJrdWpvam90YXJvNzIyQGdtYWlsLmNvbSIsImlhdCI6MTc3ODU4MDA4MSwiZXhwIjoxNzc4NjY2NDgxLCJyb2xlIjpbIlJPTEVfQURNSU4iXX0.hEIabfW6y_aHgLRj2UPItkpxhlVkX7xdzQOV1biwOTE
+@projectId = 1
 ### ========================================
 ### 1. GET PROJECT DETAIL
 ### GET /projects/{projectId}
 ### ========================================
 
 ### 1.1 Lấy chi tiết project thành công
-GET {{baseUrl}}/projects/1
+GET {{baseUrl}}/projects/2
 Authorization: {{token}}
 
 ###
@@ -31,4 +31,40 @@ GET {{baseUrl}}/projects/1
 # (Dùng token của user không thuộc project)
 # -> test sau
 GET {{baseUrl}}/projects/1
-Authorization: Bearer {{token}}
+Authorization: {{token}}
+
+
+### 1. Lấy thống kê tổng quan dự án
+# Lấy số liệu: tổng dự án, tổng tác vụ, tiến độ...
+GET {{baseUrl}}/projects/stats
+Authorization:  {{token}}
+
+### 2. Lấy danh sách dự án (Có phân trang & tìm kiếm)
+# Test với search và paging
+GET {{baseUrl}}/projects?search=dashboard&page=0&size=10
+Authorization:  {{token}}
+Accept: application/json
+
+
+### 3. Lấy dữ liệu Kanban Board
+# Lấy board của một dự án cụ thể, có thể lọc theo assignee hoặc label
+GET {{baseUrl}}/projects/{{projectId}}/board
+Authorization:  {{token}}
+Accept: application/json
+
+
+### 4. Xem chi tiết một dự án
+GET {{baseUrl}}/projects/{{projectId}}
+Authorization:  {{token}}
+Accept: application/json
+
+
+#################################################################
+# DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)
+#################################################################
+
+### 5. Admin - Lấy tất cả dự án trong hệ thống
+# Xem toàn bộ, bao gồm cả các dự án đã bị xóa (nếu includeDeleted=true)
+GET {{baseUrl}}/admin/projects?search=&includeDeleted=true&page=0&size=20
+Authorization:  {{token}}
+Accept: application/json

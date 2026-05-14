@@ -9,10 +9,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
+
+    int countByProject_ProjectId(Long projectId);
+
+    @Query("""
+            SELECT u.avatarUrl FROM ProjectMember pm
+            JOIN pm.user u
+            WHERE pm.project.projectId = :projectId
+            ORDER BY pm.joinedAt ASC
+            LIMIT 3
+            """)
+    List<String> findTop3AvatarUrlsByProjectId(@Param("projectId") Long projectId);
+
 
     // 1. Native JPA
 
