@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link"; // Bổ sung import Link
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { loginSchema, LoginFormValues } from "../schemas/auth.schema";
 
 
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/Form"; 
 
 export default function LoginForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -49,10 +47,18 @@ export default function LoginForm() {
     if (result?.error) {
       setApiError(result.error);
       setIsLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+      return;
     }
+
+    // Đợi session cookie được ghi xong rồi mới chuyển trang
+    let session = await getSession();
+    for (let i = 0; i < 5 && !session?.accessToken; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      session = await getSession();
+    }
+
+    const target = session?.isAdmin ? "/admin" : "/dashboard";
+    window.location.href = target;
   };
 
   return (

@@ -13,7 +13,10 @@ import com.MMM.taskmanager.repository.CommentRepository;
 import com.MMM.taskmanager.repository.ProjectMemberRepository;
 import com.MMM.taskmanager.repository.TaskRepository;
 import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
+import com.MMM.taskmanager.service.ActivityLogService;
 import com.MMM.taskmanager.service.CommentService;
+import com.MMM.taskmanager.util.ActivityMetadataUtil;
 import com.MMM.taskmanager.util.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
