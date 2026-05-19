@@ -30,4 +30,32 @@ export const taskApi = {
 
   updateStatus: (taskId: number, status: string) =>
     axiosClient.patch<ApiResponse<TaskDetail>>(`${BASE}/tasks/${taskId}/status`, { status }),
+
+  deleteTask: (taskId: number) =>
+    axiosClient.delete<ApiResponse<void>>(`${BASE}/tasks/${taskId}`),
+
+  createTask: (
+    projectId: number,
+    data: {
+      taskName: string;
+      taskDescription?: string;
+      priority?: number;
+      assigneeId?: number;
+      dueAt?: string;
+    }
+  ) =>
+    axiosClient.post<ApiResponse<TaskDetail>>(`${BASE}/projects/${projectId}/tasks`, data),
+
+  updateTask: (
+    taskId: number,
+    data: {
+      taskName: string;
+      taskDescription?: string;
+      priority: number;
+      status: string;
+      assigneeId?: number;
+      dueAt?: string | null;
+      labelIds?: number[];
+    }
+  ) => axiosClient.put<ApiResponse<TaskDetail>>(`${BASE}/tasks/${taskId}`, data),
 };

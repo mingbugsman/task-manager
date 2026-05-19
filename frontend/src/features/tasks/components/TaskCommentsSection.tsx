@@ -5,7 +5,9 @@ import { MessageSquare, Pencil, Reply, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmDialog } from "@/src/components/DeleteConfirmDialog";
 import { CommentAttachments } from "@/src/features/comments/components/CommentAttachments";
+import { useDeleteConfirm } from "@/src/hooks/useDeleteConfirm";
 import { CommentComposer } from "@/src/features/comments/components/CommentComposer";
 import { CommentReactions } from "@/src/features/comments/components/CommentReactions";
 import { commentApi } from "@/src/features/comments/api/comment.api";
@@ -44,6 +46,7 @@ export function TaskCommentsSection({
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState("");
+  const deleteConfirm = useDeleteConfirm();
 
   const isOwner = (c: Comment) =>
     user?.userId != null &&
@@ -168,17 +171,36 @@ export function TaskCommentsSection({
     }
   };
 
-  const removeComment = async (commentId: number, parentId?: number) => {
-    if (!confirm("Xóa bình luận này?")) return;
-    setError(null);
-    try {
-      await commentApi.delete(commentId);
-      if (parentId) await loadReplies(parentId);
-      onCommentsChange();
-      setAttachmentRefresh((k) => k + 1);
-    } catch {
-      setError("Không xóa được bình luận");
-    }
+  const removeComment = (comment: Comment, parentId?: number) => {
+    const author = normalizeUserSummary(comment.author ?? {});
+    const preview =
+      comment.content.length > 200 ? `${comment.content.slice(0, 200)}…` : comment.content;
+
+    deleteConfirm.ask({
+      title: "Xóa bình luận",
+      description: "Bình luận và các phản hồi liên quan sẽ bị xóa vĩnh viễn.",
+      details: [
+        { label: "Người viết", value: author.userName ?? "Người dùng" },
+        { label: "Nội dung", value: preview || "(trống)" },
+        { label: "Thời gian", value: formatDate(comment.createdAt) },
+        { label: "Tác vụ", value: `#${taskId}` },
+        ...(comment.replyCount > 0
+          ? [{ label: "Phản hồi", value: `${comment.replyCount} phản hồi` }]
+          : []),
+      ],
+      onConfirm: async () => {
+        setError(null);
+        try {
+          await commentApi.delete(comment.commentId);
+          if (parentId) await loadReplies(parentId);
+          onCommentsChange();
+          setAttachmentRefresh((k) => k + 1);
+        } catch {
+          setError("Không xóa được bình luận");
+          throw new Error("delete failed");
+        }
+      },
+    });
   };
 
   const renderComment = (c: Comment, isReply = false, parentId?: number) => {
@@ -280,7 +302,7 @@ export function TaskCommentsSection({
                     <button
                       type="button"
                       className="inline-flex items-center gap-1 font-medium text-slate-500 hover:text-red-600"
-                      onClick={() => removeComment(c.commentId, parentId)}
+                      onClick={() => removeComment(c, parentId)}
                     >
                       <Trash2 size={12} />
                       Xóa
@@ -370,6 +392,16 @@ export function TaskCommentsSection({
           </section>
         </section>
       </section>
+
+      <DeleteConfirmDialog
+        open={deleteConfirm.open}
+        title={deleteConfirm.request?.title ?? ""}
+        description={deleteConfirm.request?.description}
+        details={deleteConfirm.request?.details}
+        loading={deleteConfirm.loading}
+        onConfirm={deleteConfirm.confirm}
+        onCancel={deleteConfirm.close}
+      />
     </article>
   );
 }

@@ -1,15 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   ArrowRight,
   BarChart3,
   FolderKanban,
   LayoutGrid,
-  MoreHorizontal,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ActionMenuDropdown } from "@/src/components/ActionMenuDropdown";
+import { DeleteConfirmDialog } from "@/src/components/DeleteConfirmDialog";
+import { projectApi } from "@/src/features/projects/api/project.api";
+import {
+  canDeleteProject,
+  canEditProject,
+  resolveActorRole,
+} from "@/src/features/projects/lib/project-permissions";
+import { EditProjectModal } from "./EditProjectModal";
+import { useDeleteConfirm } from "@/src/hooks/useDeleteConfirm";
+import { useCurrentUser } from "@/src/hooks/useCurrentUser";
+import { getApiErrorMessage } from "@/src/lib/api-error";
+import { PROJECT_STATUS_LABELS } from "@/src/lib/constants";
 import { cn } from "@/lib/utils";
 import type { ProjectSummary } from "@/src/types/api.types";
 
@@ -97,11 +111,61 @@ export const PROJECT_THEMES: ProjectCardTheme[] = [
 interface ProjectCardProps {
   project: ProjectSummary;
   theme: ProjectCardTheme;
+  myRole?: string | null;
+  onDeleted?: () => void;
+  onUpdated?: () => void;
 }
 
-export function ProjectCard({ project, theme }: ProjectCardProps) {
+export function ProjectCard({ project, theme, myRole, onDeleted, onUpdated }: ProjectCardProps) {
+  const { data: session } = useSession();
+  const { user } = useCurrentUser();
+  const deleteConfirm = useDeleteConfirm();
+  const [editOpen, setEditOpen] = useState(false);
   const progress = Math.round(project.progressRate);
   const avatars = project.memberAvatarUrls ?? [];
+
+  const effectiveRole = resolveActorRole(myRole, { isSystemAdmin: session?.isAdmin });
+  const isCreator =
+    user?.userId != null &&
+    project.createdBy != null &&
+    String(project.createdBy) === String(user.userId);
+  const canDelete =
+    canDeleteProject(effectiveRole ?? myRole, session?.isAdmin) || isCreator;
+  const canEdit =
+    canEditProject(effectiveRole ?? myRole, session?.isAdmin) || isCreator;
+
+  const projectForEdit = {
+    projectId: project.projectId,
+    projectName: project.projectName,
+    projectDescription: project.projectDescription,
+    status: project.status,
+  };
+
+  const handleDelete = () => {
+    deleteConfirm.ask({
+      title: "Xóa dự án",
+      description: "Dự án sẽ bị xóa mềm và không còn hiển thị trong danh sách.",
+      details: [
+        { label: "Tên dự án", value: project.projectName },
+        { label: "Mô tả", value: project.projectDescription || "—" },
+        { label: "Trạng thái", value: PROJECT_STATUS_LABELS[project.status] ?? project.status },
+        { label: "Số tác vụ", value: String(project.totalTasks) },
+      ],
+      onConfirm: async () => {
+        await projectApi.deleteProject(project.projectId);
+        onDeleted?.();
+      },
+    });
+  };
+
+  const menuItems = [
+    ...(canEdit
+      ? [{ id: "edit", label: "Sửa dự án", onClick: () => setEditOpen(true) }]
+      : []),
+    ...(canDelete
+      ? [{ id: "delete", label: "Xóa dự án", destructive: true, onClick: handleDelete }]
+      : []),
+  ];
 
   return (
     <article
@@ -119,14 +183,7 @@ export function ProjectCard({ project, theme }: ProjectCardProps) {
             <h3 className="line-clamp-2 text-base font-bold leading-snug text-slate-900">
               {project.projectName}
             </h3>
-            <button
-              type="button"
-              className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100"
-              aria-label="Tùy chọn"
-              onClick={(e) => e.preventDefault()}
-            >
-              <MoreHorizontal size={18} />
-            </button>
+            <ActionMenuDropdown items={menuItems} />
           </section>
           <p className="mt-0.5 text-xs text-slate-500">{project.totalTasks} tác vụ</p>
         </section>
@@ -213,6 +270,24 @@ export function ProjectCard({ project, theme }: ProjectCardProps) {
         Chi tiết dự án
         <ArrowRight size={16} />
       </Link>
+
+      <EditProjectModal
+        open={editOpen}
+        project={editOpen ? projectForEdit : null}
+        onClose={() => setEditOpen(false)}
+        onUpdated={() => onUpdated?.()}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteConfirm.open}
+        title={deleteConfirm.request?.title ?? ""}
+        description={deleteConfirm.request?.description}
+        details={deleteConfirm.request?.details}
+        loading={deleteConfirm.loading}
+        errorMessage={deleteConfirm.errorMessage}
+        onConfirm={deleteConfirm.confirm}
+        onCancel={deleteConfirm.close}
+      />
     </article>
   );
 }

@@ -71,8 +71,10 @@ function renderStatusSliceLabel(props: {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Admin",
-  Admin: "Admin",
+  OWNER: "Owner",
+  Owner: "Owner",
+  ADMIN: "Owner",
+  Admin: "Owner",
   LEAD: "Lead",
   Lead: "Lead",
   MEMBER: "Member",

@@ -3,19 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Calendar, Clock, MoreVertical } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
+import { ActionMenuDropdown } from "@/src/components/ActionMenuDropdown";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatPriority } from "@/src/lib/format";
 import {
   formatKanbanDueDate,
-  getLabelClass,
   isTaskOverdue,
   taskDragId,
   type KanbanStatus,
   type TaskDragData,
 } from "@/src/features/projects/lib/kanban-utils";
+import { TaskLabelChips } from "./TaskLabelChips";
 import type { BoardTask } from "@/src/types/api.types";
 
 function priorityVariant(priority: number) {
@@ -28,9 +29,25 @@ interface KanbanTaskCardContentProps {
   task: BoardTask;
   className?: string;
   onTitleClick?: () => void;
+  canEdit?: boolean;
+  onEdit?: (task: BoardTask) => void;
+  canManageLabels?: boolean;
+  onManageLabels?: (task: BoardTask) => void;
+  canDelete?: boolean;
+  onDelete?: (task: BoardTask) => void;
 }
 
-export function KanbanTaskCardContent({ task, className, onTitleClick }: KanbanTaskCardContentProps) {
+export function KanbanTaskCardContent({
+  task,
+  className,
+  onTitleClick,
+  canEdit = false,
+  onEdit,
+  canManageLabels = false,
+  onManageLabels,
+  canDelete = false,
+  onDelete,
+}: KanbanTaskCardContentProps) {
   const router = useRouter();
   const overdue = isTaskOverdue(task);
 
@@ -44,31 +61,41 @@ export function KanbanTaskCardContent({ task, className, onTitleClick }: KanbanT
         >
           {task.taskName}
         </button>
-        <button
-          type="button"
-          className="shrink-0 rounded p-0.5 text-slate-400 hover:bg-slate-100"
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-label="Tùy chọn"
-        >
-          <MoreVertical size={16} />
-        </button>
+        {(canEdit || canManageLabels || canDelete) ? (
+          <section onPointerDown={(e) => e.stopPropagation()}>
+            <ActionMenuDropdown
+              icon="vertical"
+              items={[
+                ...(canEdit && onEdit
+                  ? [{ id: "edit", label: "Sửa tác vụ", onClick: () => onEdit(task) }]
+                  : []),
+                ...(canManageLabels && onManageLabels
+                  ? [
+                      {
+                        id: "labels",
+                        label: "Gán nhãn",
+                        onClick: () => onManageLabels(task),
+                      },
+                    ]
+                  : []),
+                ...(canDelete && onDelete
+                  ? [
+                      {
+                        id: "delete",
+                        label: "Xóa tác vụ",
+                        destructive: true,
+                        onClick: () => onDelete(task),
+                      },
+                    ]
+                  : []),
+              ]}
+              buttonClassName="!p-0.5"
+            />
+          </section>
+        ) : null}
       </header>
 
-      {task.labels && task.labels.length > 0 ? (
-        <section className="mb-2 flex flex-wrap gap-1">
-          {task.labels.slice(0, 3).map((label) => (
-            <span
-              key={label}
-              className={cn(
-                "rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
-                getLabelClass(label)
-              )}
-            >
-              {label}
-            </span>
-          ))}
-        </section>
-      ) : null}
+      <TaskLabelChips labels={task.labels} className="mb-2" />
 
       <section className="mb-3 flex flex-wrap gap-1.5">
         <Badge variant={priorityVariant(task.priority)} className="text-[10px]">
@@ -115,12 +142,37 @@ interface KanbanTaskCardProps {
   task: BoardTask;
   columnStatus: KanbanStatus;
   draggable?: boolean;
+  canEdit?: boolean;
+  onEdit?: (task: BoardTask) => void;
+  canManageLabels?: boolean;
+  onManageLabels?: (task: BoardTask) => void;
+  canDelete?: boolean;
+  onDelete?: (task: BoardTask) => void;
 }
 
-export function KanbanTaskCard({ task, columnStatus, draggable = false }: KanbanTaskCardProps) {
+export function KanbanTaskCard({
+  task,
+  columnStatus,
+  draggable = false,
+  canEdit,
+  onEdit,
+  canManageLabels,
+  onManageLabels,
+  canDelete,
+  onDelete,
+}: KanbanTaskCardProps) {
   if (!draggable) {
     return (
-      <KanbanTaskCardContent task={task} className="transition-shadow hover:shadow-md" />
+      <KanbanTaskCardContent
+        task={task}
+        className="transition-shadow hover:shadow-md"
+        canEdit={canEdit}
+        onEdit={onEdit}
+        canManageLabels={canManageLabels}
+        onManageLabels={onManageLabels}
+        canDelete={canDelete}
+        onDelete={onDelete}
+      />
     );
   }
 
@@ -137,6 +189,12 @@ export function KanbanTaskCard({ task, columnStatus, draggable = false }: Kanban
     <section ref={setNodeRef} style={style} {...listeners} {...attributes}>
       <KanbanTaskCardContent
         task={task}
+        canEdit={canEdit}
+        onEdit={onEdit}
+        canManageLabels={canManageLabels}
+        onManageLabels={onManageLabels}
+        canDelete={canDelete}
+        onDelete={onDelete}
         className={cn(
           "cursor-grab touch-none transition-shadow active:cursor-grabbing",
           isDragging && "opacity-30",

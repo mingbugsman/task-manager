@@ -33,4 +33,19 @@ export const projectMemberApi = {
 
   getStatistic: (projectId: number) =>
     axiosClient.get<ApiResponse<MemberStatistic>>(`${membersPath(projectId)}/statistic`),
+
+  invite: (projectId: number, data: { userId: number; role: string }) =>
+    axiosClient.post<ApiResponse<ProjectMember>>(membersPath(projectId), data),
+
+  updateRole: (projectId: number, userId: number, role: string) =>
+    axiosClient.patch<ApiResponse<ProjectMember>>(
+      `${membersPath(projectId)}/${userId}/role`,
+      { role }
+    ),
+
+  kick: (projectId: number, userId: number) =>
+    axiosClient.delete<ApiResponse<void>>(`${membersPath(projectId)}/${userId}`),
+
+  leave: (projectId: number) =>
+    axiosClient.delete<ApiResponse<void>>(`${membersPath(projectId)}/leave`),
 };

@@ -80,11 +80,13 @@ export function RecentTasksTable({
                     {task.assignee ? (
                       <section className="flex items-center gap-2">
                         <Avatar
-                          name={task.assignee.userName}
-                          src={task.assignee.avatarUrl}
+                          name={task.assignee.userName ?? task.assignee.email ?? "?"}
+                          src={task.assignee.avatarUrl ?? undefined}
                           size="sm"
                         />
-                        <span className="text-slate-700">{task.assignee.userName}</span>
+                        <span className="text-slate-700">
+                          {task.assignee.userName ?? task.assignee.email ?? "—"}
+                        </span>
                       </section>
                     ) : (
                       <span className="text-slate-400">—</span>

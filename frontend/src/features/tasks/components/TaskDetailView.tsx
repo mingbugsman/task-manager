@@ -10,11 +10,16 @@ import {
   FolderKanban,
   User,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
+import { useCurrentUser } from "@/src/hooks/useCurrentUser";
+import { projectMemberApi } from "@/src/features/projects/api/project-member.api";
+import { canEditTaskItem } from "@/src/features/projects/lib/project-permissions";
 import { taskApi } from "@/src/features/tasks/api/task.api";
 import { commentApi } from "@/src/features/comments/api/comment.api";
 import { attachmentApi } from "@/src/features/attachments/api/attachment.api";
 import { activityApi } from "@/src/features/activity/api/activity.api";
+import { TaskLabelChips } from "@/src/features/projects/components/kanban/TaskLabelChips";
 import { TaskAttachmentsPanel } from "./TaskAttachmentsPanel";
 import { TaskCommentsSection } from "./TaskCommentsSection";
 import { Avatar } from "@/components/ui/avatar";
@@ -50,7 +55,10 @@ interface TaskDetailViewProps {
 export function TaskDetailView({ taskId }: TaskDetailViewProps) {
   const router = useRouter();
   const { isReady } = useAuthReady();
+  const { data: session } = useSession();
+  const { user: currentUser } = useCurrentUser();
   const [task, setTask] = useState<TaskDetail | null>(null);
+  const [myProjectRole, setMyProjectRole] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -82,8 +90,21 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
           data: { data: { items: [] as ActivityLog[] } },
         })),
       ]);
-      setTask(taskRes.data.data);
+      const taskData = taskRes.data.data;
+      setTask(taskData);
       setComments(commentsRes.data.data.items);
+
+      if (taskData?.projectId && currentUser?.userId != null) {
+        try {
+          const membersRes = await projectMemberApi.getMembers(taskData.projectId);
+          const me = membersRes.data.data.items.find(
+            (m) => String(m.user?.userId ?? m.userId) === String(currentUser.userId)
+          );
+          setMyProjectRole(me?.role ?? null);
+        } catch {
+          setMyProjectRole(null);
+        }
+      }
       setAttachments(attachmentsRes.data.data ?? []);
       setActivities(activitiesRes.data.data.items ?? []);
     } catch {
@@ -91,13 +112,22 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [taskId]);
+  }, [taskId, currentUser?.userId]);
 
   useEffect(() => {
     if (isReady) load();
   }, [isReady, load]);
 
+  const canModifyTask =
+    task != null &&
+    canEditTaskItem(myProjectRole, {
+      isSystemAdmin: session?.isAdmin,
+      taskAssigneeId: task.assignee?.userId,
+      currentUserId: currentUser?.userId,
+    });
+
   const handleStatusChange = async (status: string) => {
+    if (!canModifyTask) return;
     if (!task || status === task.status) return;
     setUpdatingStatus(true);
     try {
@@ -176,36 +206,34 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
             </section>
 
             {task.labels && task.labels.length > 0 ? (
-              <section className="mb-6 flex flex-wrap gap-2">
-                {task.labels.map((label) => (
-                  <span
-                    key={label.labelId}
-                    className="rounded-full px-3 py-1 text-xs font-medium text-white"
-                    style={{ backgroundColor: label.colorCode ?? "#64748b" }}
-                  >
-                    {label.labelName}
-                  </span>
-                ))}
+              <section className="mb-6">
+                <TaskLabelChips labels={task.labels} size="md" />
               </section>
             ) : null}
 
-            <section>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Cập nhật trạng thái
-              </label>
-              <select
-                className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                value={task.status}
-                disabled={updatingStatus}
-                onChange={(e) => handleStatusChange(e.target.value)}
-              >
-                {TASK_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </section>
+            {canModifyTask ? (
+              <section>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Cập nhật trạng thái
+                </label>
+                <select
+                  className="w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  value={task.status}
+                  disabled={updatingStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                >
+                  {TASK_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </section>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Bạn chỉ có thể xem tác vụ này. Chỉ người được giao hoặc Lead/Chủ dự án mới được chỉnh sửa.
+              </p>
+            )}
           </article>
 
           <TaskCommentsSection

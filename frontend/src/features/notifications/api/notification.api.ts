@@ -27,4 +27,34 @@ export const notificationApi = {
 
   delete: (notificationId: number) =>
     axiosClient.delete<ApiResponse<void>>(`${BASE}/${notificationId}`),
+
+  createSystem: (data: { title: string; message: string; userIds?: number[] }) =>
+    axiosClient.post<ApiResponse<void>>(`${BASE}/system`, data),
+};
+
+const ADMIN_BASE = "/api/v1/admin/notifications";
+
+export interface AdminNotificationItem {
+  notificationId: number;
+  recipientUserId: number;
+  recipientUserName: string;
+  recipientEmail?: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const adminNotificationApi = {
+  list: (params?: { search?: string; type?: string; page?: number; size?: number }) =>
+    axiosClient.get<ApiResponse<PageResponse<AdminNotificationItem>>>(ADMIN_BASE, {
+      params: { page: 0, size: 10, ...params },
+    }),
+
+  send: (data: { title: string; message: string; userIds?: number[] }) =>
+    axiosClient.post<ApiResponse<void>>(ADMIN_BASE, data),
+
+  delete: (notificationId: number) =>
+    axiosClient.delete<ApiResponse<void>>(`${ADMIN_BASE}/${notificationId}`),
 };

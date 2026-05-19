@@ -16,7 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 export default function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const emailFromUrl = searchParams.get("email") || ""; 
+  const emailFromUrl = searchParams.get("email") || "";
+  const returnUrl = searchParams.get("returnUrl")?.trim() ?? "";
 
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -35,7 +36,9 @@ export default function VerifyOtpForm() {
     try {
       await authApi.verifyOtp(values);
       // Xác thực thành công, đẩy về trang đăng nhập
-      router.push("/login?verified=true");
+      const loginQuery = new URLSearchParams({ verified: "true" });
+      if (returnUrl) loginQuery.set("returnUrl", returnUrl);
+      router.push(`/login?${loginQuery.toString()}`);
     } catch (error: any) {
       setApiError(error.response?.data?.message || "Mã OTP không hợp lệ!");
     } finally {

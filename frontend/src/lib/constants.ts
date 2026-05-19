@@ -71,7 +71,7 @@ export const ADMIN_NAV = [
   { href: "/admin/users", label: "Quản lý User", icon: "Users" },
   { href: "/admin/projects", label: "Quản lý Dự án", icon: "FolderKanban" },
   { href: "/admin/tasks", label: "Quản lý Task", icon: "ListTodo" },
-  { href: "/notifications", label: "Thông báo", icon: "Bell" },
+  { href: "/admin/notifications", label: "Thông báo", icon: "Bell" },
   { href: "/admin/logs", label: "System Logs", icon: "ScrollText" },
-  { href: "/settings", label: "Cài đặt", icon: "Settings" },
+  { href: "/admin/settings", label: "Cài đặt hệ thống", icon: "Settings" },
 ] as const;

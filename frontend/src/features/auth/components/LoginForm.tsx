@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getSession, signIn } from "next-auth/react";
@@ -22,6 +23,8 @@ import {
 } from "@/components/ui/Form"; 
 
 export default function LoginForm() {
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl")?.trim() ?? "";
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -57,7 +60,11 @@ export default function LoginForm() {
       session = await getSession();
     }
 
-    const target = session?.isAdmin ? "/admin" : "/dashboard";
+    const fallback = session?.isAdmin ? "/admin" : "/dashboard";
+    const target =
+      returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")
+        ? returnUrl
+        : fallback;
     window.location.href = target;
   };
 
@@ -129,7 +136,11 @@ export default function LoginForm() {
         <div className="text-sm text-center text-muted-foreground">
           Chưa có tài khoản?{" "}
           <Link 
-            href="/register" 
+            href={
+              returnUrl
+                ? `/register?returnUrl=${encodeURIComponent(returnUrl)}`
+                : "/register"
+            }
             className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
             Đăng ký ngay

@@ -1,5 +1,6 @@
+import type { CSSProperties } from "react";
 import { STATUS_LABELS } from "@/src/lib/constants";
-import type { BoardColumn, BoardTask } from "@/src/types/api.types";
+import type { BoardColumn, BoardTask, LabelSummary } from "@/src/types/api.types";
 
 export const KANBAN_STATUS_ORDER = ["Todo", "In Progress", "Review", "Done"] as const;
 
@@ -66,6 +67,34 @@ export function getLabelClass(label: string): string {
   let hash = 0;
   for (let i = 0; i < label.length; i++) hash = label.charCodeAt(i) + ((hash << 5) - hash);
   return LABEL_PALETTE[Math.abs(hash) % LABEL_PALETTE.length];
+}
+
+/** Chuẩn hóa nhãn từ API board (object) hoặc bản cũ (chuỗi tên). */
+export function normalizeBoardTaskLabels(
+  labels?: BoardTask["labels"] | string[]
+): LabelSummary[] {
+  if (!labels?.length) return [];
+  return labels.map((item) => {
+    if (typeof item === "string") {
+      return { labelId: 0, labelName: item };
+    }
+    return {
+      labelId: item.labelId,
+      labelName: item.labelName,
+      colorCode: item.colorCode,
+    };
+  });
+}
+
+/** Màu chip nhãn — khớp tab Nhãn / modal Gán nhãn. */
+export function getLabelChipStyle(colorCode?: string | null): CSSProperties | undefined {
+  if (!colorCode?.trim()) return undefined;
+  const color = colorCode.trim();
+  return {
+    borderColor: color,
+    backgroundColor: `${color}22`,
+    color,
+  };
 }
 
 export function taskDragId(taskId: number): string {

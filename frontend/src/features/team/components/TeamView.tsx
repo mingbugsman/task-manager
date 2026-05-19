@@ -15,6 +15,9 @@ import {
   teamRoleLabel,
 } from "../lib/team-display";
 import { TeamMemberDrawer } from "./TeamMemberDrawer";
+import { TeamProjectManageSection } from "./TeamProjectManageSection";
+
+type TeamTab = "collaborators" | "projects";
 
 export function TeamView() {
   const { isReady } = useAuthReady();
@@ -24,6 +27,7 @@ export function TeamView() {
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState<number | "all">("all");
   const [selected, setSelected] = useState<TeamCollaborator | null>(null);
+  const [teamTab, setTeamTab] = useState<TeamTab>("collaborators");
 
   useEffect(() => {
     if (!isReady) return;
@@ -107,7 +111,18 @@ export function TeamView() {
         showFilter={false}
       />
 
-      {overview ? (
+      <nav className="mb-6 flex flex-wrap gap-2">
+        <FilterChip active={teamTab === "collaborators"} onClick={() => setTeamTab("collaborators")}>
+          Cộng tác viên
+        </FilterChip>
+        <FilterChip active={teamTab === "projects"} onClick={() => setTeamTab("projects")}>
+          Phân quyền dự án
+        </FilterChip>
+      </nav>
+
+      {teamTab === "projects" ? <TeamProjectManageSection /> : null}
+
+      {teamTab === "collaborators" && overview ? (
         <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <OverviewCard
             icon={Users}
@@ -130,7 +145,7 @@ export function TeamView() {
         </section>
       ) : null}
 
-      {projectOptions.length > 0 ? (
+      {teamTab === "collaborators" && projectOptions.length > 0 ? (
         <section className="mb-4 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
             Lọc dự án
@@ -153,17 +168,21 @@ export function TeamView() {
         </section>
       ) : null}
 
-      {filtered.length === 0 ? (
-        <EmptyTeam hasProjects={(overview?.projectCount ?? 0) > 0} />
-      ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((member) => (
-            <MemberCard key={member.userId} member={member} onSelect={() => setSelected(member)} />
-          ))}
-        </ul>
-      )}
+      {teamTab === "collaborators" ? (
+        filtered.length === 0 ? (
+          <EmptyTeam hasProjects={(overview?.projectCount ?? 0) > 0} />
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((member) => (
+              <MemberCard key={member.userId} member={member} onSelect={() => setSelected(member)} />
+            ))}
+          </ul>
+        )
+      ) : null}
 
-      <TeamMemberDrawer member={selected} onClose={() => setSelected(null)} />
+      {teamTab === "collaborators" ? (
+        <TeamMemberDrawer member={selected} onClose={() => setSelected(null)} />
+      ) : null}
     </section>
   );
 }

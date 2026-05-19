@@ -27,7 +27,17 @@ import type { BoardColumn, BoardTask } from "@/src/types/api.types";
 interface ProjectKanbanBoardProps {
   projectId: number;
   columns: BoardColumn[];
+  /** Tăng khi parent tải lại board — reset cột Kanban (sau sửa trạng thái task). */
+  syncKey?: number;
   canDragDrop?: boolean;
+  canDragTask?: (task: BoardTask) => boolean;
+  canEditTask?: boolean | ((task: BoardTask) => boolean);
+  onEditTask?: (task: BoardTask) => void;
+  canManageLabels?: boolean | ((task: BoardTask) => boolean);
+  onManageLabels?: (task: BoardTask) => void;
+  canDeleteTask?: boolean;
+  onDeleteTask?: (task: BoardTask) => void;
+  onAddTask?: () => void;
 }
 
 function findTaskInColumns(
@@ -67,11 +77,25 @@ function moveTaskBetweenColumns(
 function KanbanColumnsGrid({
   columns,
   canDragDrop,
+  canDragTask,
   onAddTask,
+  canEditTask,
+  onEditTask,
+  canManageLabels,
+  onManageLabels,
+  canDeleteTask,
+  onDeleteTask,
 }: {
   columns: KanbanColumnData[];
   canDragDrop: boolean;
+  canDragTask?: (task: BoardTask) => boolean;
   onAddTask: (status: KanbanStatus) => void;
+  canEditTask?: boolean | ((task: BoardTask) => boolean);
+  onEditTask?: (task: BoardTask) => void;
+  canManageLabels?: boolean | ((task: BoardTask) => boolean);
+  onManageLabels?: (task: BoardTask) => void;
+  canDeleteTask?: boolean;
+  onDeleteTask?: (task: BoardTask) => void;
 }) {
   return (
     <section className="flex gap-4 overflow-x-auto pb-4">
@@ -80,7 +104,14 @@ function KanbanColumnsGrid({
           key={column.status}
           column={column}
           canDragDrop={canDragDrop}
+          canDragTask={canDragTask}
           onAddTask={onAddTask}
+          canEditTask={canEditTask}
+          onEditTask={onEditTask}
+          canManageLabels={canManageLabels}
+          onManageLabels={onManageLabels}
+          canDeleteTask={canDeleteTask}
+          onDeleteTask={onDeleteTask}
         />
       ))}
     </section>
@@ -90,7 +121,16 @@ function KanbanColumnsGrid({
 export function ProjectKanbanBoard({
   projectId,
   columns: initialColumns,
+  syncKey = 0,
   canDragDrop = false,
+  canDragTask,
+  canEditTask = false,
+  onEditTask,
+  canManageLabels = false,
+  onManageLabels,
+  canDeleteTask = false,
+  onDeleteTask,
+  onAddTask,
 }: ProjectKanbanBoardProps) {
   const [columns, setColumns] = useState<KanbanColumnData[]>(() =>
     normalizeKanbanColumns(initialColumns)
@@ -101,9 +141,9 @@ export function ProjectKanbanBoard({
   const hasLocalChanges = useRef(false);
 
   useEffect(() => {
-    if (hasLocalChanges.current) return;
+    hasLocalChanges.current = false;
     setColumns(normalizeKanbanColumns(initialColumns));
-  }, [initialColumns]);
+  }, [initialColumns, syncKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -117,7 +157,12 @@ export function ProjectKanbanBoard({
     const taskId = parseTaskDragId(String(event.active.id));
     if (taskId == null) return;
     const found = findTaskInColumns(columns, taskId);
-    if (found) setActiveTask(found.task);
+    if (!found) return;
+    if (canDragTask && !canDragTask(found.task)) {
+      setError("Bạn chỉ có thể kéo thả tác vụ được giao cho mình.");
+      return;
+    }
+    setActiveTask(found.task);
   };
 
   const handleDragEnd = useCallback(
@@ -137,6 +182,11 @@ export function ProjectKanbanBoard({
       const current = findTaskInColumns(columns, taskId);
       if (!current || current.status === newStatus) return;
 
+      if (canDragTask && !canDragTask(current.task)) {
+        setError("Bạn chỉ có thể đổi trạng thái tác vụ được giao cho mình.");
+        return;
+      }
+
       const previous = columns;
       hasLocalChanges.current = true;
       setColumns((cols) => moveTaskBetweenColumns(cols, taskId, newStatus));
@@ -153,16 +203,16 @@ export function ProjectKanbanBoard({
         setUpdating(false);
       }
     },
-    [canDragDrop, columns]
+    [canDragDrop, canDragTask, columns]
   );
 
   const handleDragCancel = () => {
     setActiveTask(null);
   };
 
-  const handleAddTask = (status: KanbanStatus) => {
-    void status;
+  const handleAddTask = (_status: KanbanStatus) => {
     void projectId;
+    onAddTask?.();
   };
 
   return (
@@ -170,7 +220,11 @@ export function ProjectKanbanBoard({
       {!canDragDrop ? (
         <p className="mb-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           <Lock size={16} className="shrink-0" />
-          Chỉ Admin dự án hoặc Lead mới có thể kéo thả để đổi trạng thái task.
+          Bạn không có quyền kéo thả task trên bảng này.
+        </p>
+      ) : canDragTask ? (
+        <p className="mb-3 text-sm text-slate-500">
+          Thành viên chỉ kéo thả được task được giao cho mình.
         </p>
       ) : null}
 
@@ -192,7 +246,14 @@ export function ProjectKanbanBoard({
             <KanbanColumnsGrid
               columns={columns}
               canDragDrop={canDragDrop}
+              canDragTask={canDragTask}
               onAddTask={handleAddTask}
+              canEditTask={canEditTask}
+              onEditTask={onEditTask}
+              canManageLabels={canManageLabels}
+              onManageLabels={onManageLabels}
+              canDeleteTask={canDeleteTask}
+              onDeleteTask={onDeleteTask}
             />
             <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
               {activeTask ? (
@@ -206,7 +267,14 @@ export function ProjectKanbanBoard({
           <KanbanColumnsGrid
             columns={columns}
             canDragDrop={false}
+            canDragTask={canDragTask}
             onAddTask={handleAddTask}
+            canEditTask={canEditTask}
+            onEditTask={onEditTask}
+            canManageLabels={canManageLabels}
+            onManageLabels={onManageLabels}
+            canDeleteTask={canDeleteTask}
+            onDeleteTask={onDeleteTask}
           />
         )}
       </section>

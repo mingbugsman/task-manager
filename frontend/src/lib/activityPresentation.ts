@@ -100,7 +100,7 @@ export function presentActivity(activity: ActivityLog): ActivityPresentation {
     };
   }
 
-  if (entity === "COMMENT" && (action === "CREATE" || action === "UPDATE")) {
+  if (entity === "COMMENT" && (action === "CREATE" || action === "UPDATE" || action === "COMMENT")) {
     return {
       kind: "comment",
       verb: "đã bình luận vào",
@@ -169,17 +169,46 @@ export function presentActivity(activity: ActivityLog): ActivityPresentation {
     };
   }
 
+  if (entity === "PROJECT" && action === "INVITE") {
+    return {
+      kind: "member",
+      verb: "đã mời thành viên vào",
+      targetLabel: projectName ?? "dự án",
+      targetHref: projectHref(activity.projectId ?? activity.entityId),
+      icon: UserPlus,
+      iconClassName: "text-slate-400",
+    };
+  }
+
   if (
     (entity === "USER" || entity === "PROJECT") &&
     (action === "CREATE" || action === "ADD" || action === "JOIN")
   ) {
     return {
       kind: "member",
-      verb: entity === "USER" ? "đã được thêm vào" : "đã thêm thành viên vào",
+      verb:
+        action === "JOIN"
+          ? "đã tham gia"
+          : entity === "USER"
+            ? "đã được thêm vào"
+            : "đã tạo",
       targetLabel: projectName ?? taskName ?? "dự án",
       targetHref: projectHref(activity.projectId ?? activity.entityId),
       icon: UserPlus,
       iconClassName: "text-slate-400",
+    };
+  }
+
+  if (entity === "TASK" && action === "MOVE") {
+    const newStatus = str(meta, "newStatus");
+    return {
+      kind: "status",
+      verb: "đã chuyển trạng thái",
+      targetLabel: taskName ?? "tác vụ",
+      targetHref: taskHref(taskId),
+      detail: newStatus ? formatStatusLabel(newStatus) : undefined,
+      icon: ArrowLeftRight,
+      iconClassName: "text-blue-500",
     };
   }
 
@@ -212,6 +241,10 @@ export function presentActivity(activity: ActivityLog): ActivityPresentation {
     UPDATE: "đã cập nhật",
     UPLOAD: "đã tải lên",
     DELETE: "đã xóa",
+    MOVE: "đã chuyển",
+    INVITE: "đã mời",
+    JOIN: "đã tham gia",
+    COMMENT: "đã bình luận",
     LOGIN: "đã đăng nhập",
   };
 

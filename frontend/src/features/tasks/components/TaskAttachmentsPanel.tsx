@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import { Download, FileText, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmDialog } from "@/src/components/DeleteConfirmDialog";
 import { attachmentApi } from "@/src/features/attachments/api/attachment.api";
+import { useDeleteConfirm } from "@/src/hooks/useDeleteConfirm";
 import { useCurrentUser } from "@/src/hooks/useCurrentUser";
 import { formatDate, formatFileSize } from "@/src/lib/format";
 import type { Attachment } from "@/src/types/api.types";
@@ -31,6 +33,7 @@ export function TaskAttachmentsPanel({
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const deleteConfirm = useDeleteConfirm();
 
   const canDelete = (a: Attachment) =>
     session?.isAdmin ||
@@ -57,18 +60,36 @@ export function TaskAttachmentsPanel({
     }
   };
 
-  const handleDelete = async (attachmentId: number) => {
-    if (!confirm("Xóa tệp đính kèm này?")) return;
-    setDeletingId(attachmentId);
-    setError(null);
-    try {
-      await attachmentApi.delete(attachmentId);
-      onChange();
-    } catch {
-      setError("Không xóa được file");
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (attachment: Attachment) => {
+    deleteConfirm.ask({
+      title: "Xóa tệp đính kèm",
+      description: "Tệp sẽ bị xóa vĩnh viễn khỏi tác vụ.",
+      details: [
+        { label: "Tên tệp", value: attachment.fileName },
+        {
+          label: "Kích thước",
+          value: attachment.fileSize != null ? formatFileSize(attachment.fileSize) : "—",
+        },
+        {
+          label: "Ngày tải lên",
+          value: attachment.createdAt ? formatDate(attachment.createdAt) : "—",
+        },
+        { label: "Tác vụ", value: `#${taskId}` },
+      ],
+      onConfirm: async () => {
+        setDeletingId(attachment.attachmentId);
+        setError(null);
+        try {
+          await attachmentApi.delete(attachment.attachmentId);
+          onChange();
+        } catch {
+          setError("Không xóa được file");
+          throw new Error("delete failed");
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (
@@ -149,7 +170,7 @@ export function TaskAttachmentsPanel({
                     className="rounded-lg p-1.5 text-slate-500 hover:bg-white hover:text-red-600"
                     title="Xóa"
                     disabled={deletingId === a.attachmentId}
-                    onClick={() => handleDelete(a.attachmentId)}
+                    onClick={() => handleDelete(a)}
                   >
                     {deletingId === a.attachmentId ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -163,6 +184,16 @@ export function TaskAttachmentsPanel({
           ))}
         </ul>
       )}
+
+      <DeleteConfirmDialog
+        open={deleteConfirm.open}
+        title={deleteConfirm.request?.title ?? ""}
+        description={deleteConfirm.request?.description}
+        details={deleteConfirm.request?.details}
+        loading={deleteConfirm.loading}
+        onConfirm={deleteConfirm.confirm}
+        onCancel={deleteConfirm.close}
+      />
     </article>
   );
 }

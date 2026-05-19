@@ -87,7 +87,7 @@ export interface BoardTask {
   assigneeId?: number;
   assigneeUsername?: string;
   assigneeAvatarUrl?: string;
-  labels?: string[];
+  labels?: LabelSummary[];
 }
 
 export interface BoardColumn {

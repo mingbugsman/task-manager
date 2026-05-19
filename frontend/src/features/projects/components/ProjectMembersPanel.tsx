@@ -8,8 +8,10 @@ import { normalizeUserSummary } from "@/src/lib/normalize-user";
 import type { MemberStatistic, ProjectMember, UserSummary } from "@/src/types/api.types";
 
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Quản trị",
-  Admin: "Quản trị",
+  OWNER: "Chủ dự án",
+  Owner: "Chủ dự án",
+  ADMIN: "Chủ dự án",
+  Admin: "Chủ dự án",
   LEAD: "Trưởng nhóm",
   Lead: "Trưởng nhóm",
   MEMBER: "Thành viên",
@@ -19,6 +21,8 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_ORDER: Record<string, number> = {
+  OWNER: 0,
+  Owner: 0,
   ADMIN: 0,
   Admin: 0,
   LEAD: 1,
@@ -31,14 +35,14 @@ const ROLE_ORDER: Record<string, number> = {
 
 function roleIcon(role: string) {
   const r = role.toUpperCase();
-  if (r === "ADMIN") return <Shield size={14} />;
+  if (r === "OWNER" || r === "ADMIN") return <Shield size={14} />;
   if (r === "LEAD") return <Crown size={14} />;
   return <User size={14} />;
 }
 
 function roleBadgeStyle(role: string) {
   const r = role.toUpperCase();
-  if (r === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (r === "OWNER" || r === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-800";
   if (r === "LEAD") return "border-violet-200 bg-violet-50 text-violet-800";
   if (r === "VIEWER") return "border-slate-200 bg-slate-50 text-slate-600";
   return "border-slate-200 bg-slate-100 text-slate-700";

@@ -10,6 +10,7 @@ import {
   type KanbanColumnData,
   type KanbanStatus,
 } from "@/src/features/projects/lib/kanban-utils";
+import type { BoardTask } from "@/src/types/api.types";
 
 const COLUMN_META: Record<
   KanbanStatus,
@@ -44,10 +45,32 @@ const COLUMN_META: Record<
 interface KanbanColumnProps {
   column: KanbanColumnData;
   canDragDrop?: boolean;
+  canDragTask?: (task: BoardTask) => boolean;
   onAddTask?: (status: KanbanStatus) => void;
+  canEditTask?: boolean | ((task: BoardTask) => boolean);
+  onEditTask?: (task: BoardTask) => void;
+  canManageLabels?: boolean | ((task: BoardTask) => boolean);
+  onManageLabels?: (task: BoardTask) => void;
+  canDeleteTask?: boolean;
+  onDeleteTask?: (task: BoardTask) => void;
 }
 
-export function KanbanColumn({ column, canDragDrop = false, onAddTask }: KanbanColumnProps) {
+export function KanbanColumn({
+  column,
+  canDragDrop = false,
+  canDragTask,
+  onAddTask,
+  canEditTask,
+  onEditTask,
+  canManageLabels,
+  onManageLabels,
+  canDeleteTask,
+  onDeleteTask,
+}: KanbanColumnProps) {
+  const taskPerm = (
+    perm: boolean | ((task: BoardTask) => boolean) | undefined,
+    task: BoardTask
+  ) => (typeof perm === "function" ? perm(task) : (perm ?? false));
   const dropData: ColumnDropData = { type: "column", status: column.status };
 
   const { setNodeRef, isOver } = useDroppable({
@@ -101,7 +124,13 @@ export function KanbanColumn({ column, canDragDrop = false, onAddTask }: KanbanC
             key={task.taskId}
             task={task}
             columnStatus={column.status}
-            draggable={canDragDrop}
+            draggable={canDragDrop && (canDragTask ? canDragTask(task) : true)}
+            canEdit={taskPerm(canEditTask, task)}
+            onEdit={onEditTask}
+            canManageLabels={taskPerm(canManageLabels, task)}
+            onManageLabels={onManageLabels}
+            canDelete={canDeleteTask}
+            onDelete={onDeleteTask}
           />
         ))}
 

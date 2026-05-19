@@ -54,4 +54,13 @@ export const projectApi = {
     axiosClient.patch<ApiResponse<ProjectDetail>>(`${BASE}/projects/${projectId}/status`, {
       status,
     }),
+
+  createProject: (data: { projectName: string; projectDescription?: string }) =>
+    axiosClient.post<ApiResponse<ProjectDetail>>(`${BASE}/projects`, data),
+
+  deleteProject: (projectId: number) =>
+    axiosClient.delete<ApiResponse<void>>(`${BASE}/projects/${projectId}`),
+
+  restoreProject: (projectId: number) =>
+    axiosClient.patch<ApiResponse<ProjectDetail>>(`${BASE}/projects/${projectId}/restore`),
 };

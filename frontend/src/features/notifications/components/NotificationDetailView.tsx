@@ -15,6 +15,8 @@ import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { notificationApi } from "@/src/features/notifications/api/notification.api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmDialog } from "@/src/components/DeleteConfirmDialog";
+import { useDeleteConfirm } from "@/src/hooks/useDeleteConfirm";
 import { NOTIFICATION_TYPE_LABELS } from "@/src/lib/constants";
 import { formatDateTime, formatRelativeTime } from "@/src/lib/format";
 import type { NotificationItem } from "@/src/types/api.types";
@@ -41,6 +43,7 @@ export function NotificationDetailView({ notificationId }: NotificationDetailVie
   const [notification, setNotification] = useState<NotificationItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const deleteConfirm = useDeleteConfirm();
 
   useEffect(() => {
     if (!isReady) return;
@@ -75,16 +78,46 @@ export function NotificationDetailView({ notificationId }: NotificationDetailVie
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Xóa thông báo này?")) return;
-    setActionLoading(true);
-    try {
-      await notificationApi.delete(notificationId);
-      router.push("/notifications");
-    } catch (e) {
-      console.error(e);
-      setActionLoading(false);
-    }
+  const handleDelete = () => {
+    if (!notification) return;
+    deleteConfirm.ask({
+      title: "Xóa thông báo",
+      description: "Thông báo sẽ bị xóa vĩnh viễn và không thể khôi phục.",
+      details: [
+        { label: "Tiêu đề", value: notification.title },
+        { label: "Loại", value: typeLabel(notification.type) },
+        {
+          label: "Nội dung",
+          value:
+            notification.message.length > 200
+              ? `${notification.message.slice(0, 200)}…`
+              : notification.message,
+        },
+        {
+          label: "Thời gian",
+          value: formatDateTime(notification.createdAt),
+        },
+        ...(notification.entityType
+          ? [
+              {
+                label: "Liên quan",
+                value: `${notification.entityType}${notification.entityId != null ? ` #${notification.entityId}` : ""}`,
+              },
+            ]
+          : []),
+      ],
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await notificationApi.delete(notificationId);
+          router.push("/notifications");
+        } catch (e) {
+          console.error(e);
+          setActionLoading(false);
+          throw e;
+        }
+      },
+    });
   };
 
   if (!isReady || loading) {
@@ -211,6 +244,17 @@ export function NotificationDetailView({ notificationId }: NotificationDetailVie
           </Button>
         </section>
       </article>
+
+      <DeleteConfirmDialog
+        open={deleteConfirm.open}
+        title={deleteConfirm.request?.title ?? ""}
+        description={deleteConfirm.request?.description}
+        details={deleteConfirm.request?.details}
+        confirmLabel={deleteConfirm.request?.confirmLabel}
+        loading={deleteConfirm.loading || actionLoading}
+        onConfirm={deleteConfirm.confirm}
+        onCancel={deleteConfirm.close}
+      />
     </section>
   );
 }

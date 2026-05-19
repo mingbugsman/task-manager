@@ -80,7 +80,7 @@ export function TeamMemberDrawer({ member, onClose }: TeamMemberDrawerProps) {
               {member.sharedProjects.map((p) => (
                 <li key={p.projectId}>
                   <Link
-                    href={`/projects/${p.projectId}`}
+                    href={`/projects/${p.projectId}?tab=members`}
                     onClick={onClose}
                     className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 px-4 py-3 transition-colors hover:border-blue-200 hover:bg-blue-50/40"
                   >

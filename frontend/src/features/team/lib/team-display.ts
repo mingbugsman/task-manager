@@ -1,6 +1,8 @@
 export const TEAM_ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Quản trị",
-  Admin: "Quản trị",
+  OWNER: "Chủ dự án",
+  Owner: "Chủ dự án",
+  ADMIN: "Chủ dự án",
+  Admin: "Chủ dự án",
   LEAD: "Trưởng nhóm",
   Lead: "Trưởng nhóm",
   MEMBER: "Thành viên",
@@ -28,7 +30,7 @@ export function collaboratorDisplayName(c: {
 
 export function teamRoleBadgeClass(role: string): string {
   const r = role.toUpperCase();
-  if (r === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (r === "OWNER" || r === "ADMIN") return "border-amber-200 bg-amber-50 text-amber-800";
   if (r === "LEAD") return "border-violet-200 bg-violet-50 text-violet-800";
   if (r === "VIEWER") return "border-slate-200 bg-slate-50 text-slate-600";
   return "border-slate-200 bg-slate-100 text-slate-700";

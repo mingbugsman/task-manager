@@ -1,50 +1,73 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { projectApi } from "@/src/features/projects/api/project.api";
 import { ProjectStatsRow } from "./ProjectStatsRow";
 import { ProjectCard, PROJECT_THEMES } from "./ProjectCard";
+import { CreateProjectModal } from "./CreateProjectModal";
+import { ListPagination } from "@/src/components/ListPagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ProjectOverallStats, ProjectSummary } from "@/src/types/api.types";
 
+const PAGE_SIZE = 6;
+
 export function ProjectsListView() {
+  const router = useRouter();
   const { isReady } = useAuthReady();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [stats, setStats] = useState<ProjectOverallStats | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
+  const loadProjects = useCallback(() => {
     if (!isReady) return;
-
     setLoading(true);
-    Promise.all([projectApi.getProjects({ size: 50 }), projectApi.getStats()])
+    const q = search.trim() || undefined;
+    Promise.all([
+      projectApi.getProjects({ page, size: PAGE_SIZE, search: q }),
+      projectApi.getStats(),
+    ])
       .then(([projectsRes, statsRes]) => {
-        setProjects(projectsRes.data.data.items);
+        const data = projectsRes.data.data;
+        setProjects(data.items);
+        setTotalPages(Math.max(1, data.totalPages));
+        setTotalElements(data.totalElements);
+        setHasNext(data.hasNext);
+        setHasPrevious(data.hasPrevious);
         setStats(statsRes.data.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [isReady]);
+  }, [isReady, page, search]);
 
-  const filteredProjects = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter(
-      (p) =>
-        p.projectName.toLowerCase().includes(q) ||
-        (p.projectDescription?.toLowerCase().includes(q) ?? false)
-    );
-  }, [projects, search]);
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
-  const activeCount = useMemo(
-    () => filteredProjects.filter((p) => p.status === "ACTIVE").length,
-    [filteredProjects]
-  );
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadProjects();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadProjects]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(0);
+  };
+
+  const activeCount = projects.filter((p) => p.status === "ACTIVE").length;
 
   if (!isReady || loading) {
     return (
@@ -60,7 +83,7 @@ export function ProjectsListView() {
         <section>
           <h1 className="text-2xl font-bold text-slate-900">Tất Cả Dự Án</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Quản lý và theo dõi tiến độ của {activeCount} dự án đang hoạt động
+            {totalElements} dự án · {activeCount} đang hoạt động trên trang này
           </p>
         </section>
 
@@ -74,38 +97,61 @@ export function ProjectsListView() {
               className="w-full min-w-[200px] rounded-xl border-slate-200 bg-white pl-9 sm:w-64"
               placeholder="Tìm dự án..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               aria-label="Tìm dự án"
             />
           </section>
-          <Button className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700" asChild>
-            <Link href="/projects">
-              <Plus size={16} />
-              Tạo Dự Án
-            </Link>
+          <Button
+            type="button"
+            className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus size={16} />
+            Tạo Dự Án
           </Button>
         </section>
       </header>
 
       <ProjectStatsRow stats={stats} />
 
-      {filteredProjects.length === 0 ? (
+      {projects.length === 0 ? (
         <article className="rounded-2xl border border-dashed border-slate-200 bg-white py-16 text-center">
           <p className="text-slate-500">
             {search.trim() ? "Không tìm thấy dự án phù hợp" : "Không có dự án nào"}
           </p>
         </article>
       ) : (
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {filteredProjects.map((project, index) => (
-            <ProjectCard
-              key={project.projectId}
-              project={project}
-              theme={PROJECT_THEMES[index % PROJECT_THEMES.length]}
+        <>
+          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {projects.map((project, index) => (
+              <ProjectCard
+                key={project.projectId}
+                project={project}
+                theme={PROJECT_THEMES[index % PROJECT_THEMES.length]}
+                onDeleted={loadProjects}
+                onUpdated={loadProjects}
+              />
+            ))}
+          </section>
+          <article className="mt-6 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              totalElements={totalElements}
+              pageSize={PAGE_SIZE}
+              hasPrevious={hasPrevious}
+              hasNext={hasNext}
+              onPageChange={setPage}
             />
-          ))}
-        </section>
+          </article>
+        </>
       )}
+
+      <CreateProjectModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(projectId) => router.push(`/projects/${projectId}`)}
+      />
     </section>
   );
 }
