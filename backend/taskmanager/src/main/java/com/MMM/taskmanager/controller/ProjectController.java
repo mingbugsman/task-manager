@@ -3,6 +3,7 @@ package com.MMM.taskmanager.controller;
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
 import com.MMM.taskmanager.dto.response.project.BoardResponse;
+import com.MMM.taskmanager.dto.response.project.ProjectAnalyticsResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectDetailResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectOverallStatsResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectSummaryResponse;
@@ -73,6 +74,15 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.ok(data));
     }
 
+    @Operation(
+            summary = "Analytics dự án",
+            description = "Thống kê, biểu đồ tiến độ, phân bổ task và hiệu suất thành viên trong dự án"
+    )
+    @GetMapping("/projects/{projectId}/analytics")
+    public ResponseEntity<ApiResponse<ProjectAnalyticsResponse>> getProjectAnalytics(
+            @PathVariable Long projectId) {
+        return ResponseEntity.ok(ApiResponse.ok(projectService.getAnalytics(projectId)));
+    }
 
     @Operation(
             summary = "Xem chi tiết dự án",

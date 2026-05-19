@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   BoardData,
   PageResponse,
+  ProjectAnalytics,
   ProjectDetail,
   ProjectOverallStats,
   ProjectSummary,
@@ -39,6 +40,9 @@ export const projectApi = {
     axiosClient.get<ApiResponse<BoardData>>(`${BASE}/projects/${projectId}/board`, {
       params,
     }),
+
+  getAnalytics: (projectId: number) =>
+    axiosClient.get<ApiResponse<ProjectAnalytics>>(`${BASE}/projects/${projectId}/analytics`),
 
   updateProject: (
     projectId: number,

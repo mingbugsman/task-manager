@@ -2,20 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
+  BarChart3,
   Calendar,
   FolderKanban,
   LayoutGrid,
   ListTodo,
+  Plus,
+  SlidersHorizontal,
   Users,
   Zap,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
+import { useCurrentUser } from "@/src/hooks/useCurrentUser";
+import { canUseKanbanDragDrop } from "@/src/features/projects/lib/kanban-permissions";
 import { projectApi } from "@/src/features/projects/api/project.api";
 import { projectMemberApi } from "@/src/features/projects/api/project-member.api";
 import { taskApi } from "@/src/features/tasks/api/task.api";
 import { activityApi } from "@/src/features/activity/api/activity.api";
+import { ProjectAnalyticsPanel } from "./analytics/ProjectAnalyticsPanel";
 import { ProjectKanbanBoard } from "./ProjectKanbanBoard";
 import { ProjectMembersPanel } from "./ProjectMembersPanel";
 import { ActivityFeed } from "@/src/components/dashboard/ActivityFeed";
@@ -34,10 +43,11 @@ import type {
   TaskStatistic,
 } from "@/src/types/api.types";
 
-type TabId = "board" | "members" | "activity";
+type TabId = "board" | "members" | "activity" | "analytics";
 
 const TABS: { id: TabId; label: string; icon: typeof LayoutGrid }[] = [
   { id: "board", label: "Bảng Kanban", icon: LayoutGrid },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "members", label: "Thành viên", icon: Users },
   { id: "activity", label: "Hoạt động", icon: Zap },
 ];
@@ -47,7 +57,10 @@ interface ProjectDetailViewProps {
 }
 
 export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
+  const searchParams = useSearchParams();
   const { isReady } = useAuthReady();
+  const { data: session } = useSession();
+  const { user: currentUser } = useCurrentUser();
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [board, setBoard] = useState<BoardData | null>(null);
   const [stats, setStats] = useState<TaskStatistic | null>(null);
@@ -86,6 +99,24 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
   useEffect(() => {
     if (isReady) load();
   }, [isReady, load]);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "board" || t === "members" || t === "activity" || t === "analytics") {
+      setTab(t);
+    }
+  }, [searchParams]);
+
+  const canDragKanban = useMemo(() => {
+    const myMember = members.find(
+      (m) => String(m.user.userId) === String(currentUser?.userId)
+    );
+    return canUseKanbanDragDrop({
+      isSystemAdmin: session?.isAdmin,
+      projectRole: myMember?.role,
+      isProjectManager: myMember?.isManager,
+    });
+  }, [members, currentUser?.userId, session?.isAdmin]);
 
   const progressRate = useMemo(() => {
     if (stats && stats.totalTasks > 0) {
@@ -143,16 +174,21 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
     );
   }
 
+  const isAnalytics = tab === "analytics";
+
   return (
     <section className="space-y-6">
-      <Link
-        href="/projects"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-blue-600"
-      >
-        <ArrowLeft size={16} />
-        Tất cả dự án
-      </Link>
+      {!isAnalytics ? (
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-blue-600"
+        >
+          <ArrowLeft size={16} />
+          Tất cả dự án
+        </Link>
+      ) : null}
 
+      {!isAnalytics ? (
       <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <section
           className="px-6 py-8 text-white"
@@ -215,12 +251,15 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
           </section>
         </section>
       </article>
+      ) : null}
 
-      <StatsCards
-        todo={taskCounts.todo}
-        inProgress={taskCounts.inProgress}
-        done={taskCounts.done}
-      />
+      {!isAnalytics ? (
+        <StatsCards
+          todo={taskCounts.todo}
+          inProgress={taskCounts.inProgress}
+          done={taskCounts.done}
+        />
+      ) : null}
 
       <nav className="flex flex-wrap gap-2 border-b border-slate-100 pb-1">
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -243,11 +282,33 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
 
       {tab === "board" && board ? (
         <section>
-          <section className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900">Bảng công việc</h2>
-            <p className="text-sm text-slate-500">Nhấn thẻ để xem chi tiết tác vụ</p>
-          </section>
-          <ProjectKanbanBoard columns={board.columns} />
+          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <section>
+              <h2 className="text-xl font-bold text-slate-900">Kanban Board</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {canDragKanban
+                  ? "Kéo thả task để thay đổi trạng thái"
+                  : "Xem bảng công việc (chỉ Admin/Lead được kéo thả)"}
+              </p>
+            </section>
+            <section className="flex items-center gap-3">
+              <Button variant="outline" className="gap-2 rounded-xl border-slate-200">
+                <SlidersHorizontal size={16} />
+                Lọc
+              </Button>
+              <Button className="gap-2 rounded-xl bg-blue-600 hover:bg-blue-700" asChild>
+                <Link href={`/projects/${projectId}`}>
+                  <Plus size={16} />
+                  Tạo Task
+                </Link>
+              </Button>
+            </section>
+          </header>
+          <ProjectKanbanBoard
+            projectId={projectId}
+            columns={board.columns}
+            canDragDrop={canDragKanban}
+          />
         </section>
       ) : null}
 
@@ -263,6 +324,10 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
             showFooter={activities.length >= 8}
           />
         </section>
+      ) : null}
+
+      {tab === "analytics" ? (
+        <ProjectAnalyticsPanel projectId={projectId} project={project} />
       ) : null}
     </section>
   );

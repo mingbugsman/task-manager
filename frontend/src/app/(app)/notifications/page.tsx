@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { Bell, CheckCheck, ChevronRight } from "lucide-react";
@@ -19,7 +19,19 @@ function typeLabel(type: string) {
 export default function NotificationsPage() {
   const { isReady } = useAuthReady();
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (n) =>
+        n.title.toLowerCase().includes(q) ||
+        n.message.toLowerCase().includes(q) ||
+        n.type.toLowerCase().includes(q)
+    );
+  }, [items, search]);
 
   const load = () => {
     if (!isReady) return;
@@ -44,8 +56,11 @@ export default function NotificationsPage() {
     <section>
       <AppHeader
         title="Thông Báo"
-        subtitle="Cập nhật mới nhất từ dự án và team"
-        showFilter={false}
+        subtitle={`${filteredItems.length} thông báo`}
+        showSearch
+        searchPlaceholder="Tìm thông báo..."
+        searchValue={search}
+        onSearchChange={setSearch}
       />
 
       <section className="mb-4 flex justify-end">
@@ -60,14 +75,14 @@ export default function NotificationsPage() {
           <section className="flex h-48 items-center justify-center">
             <section className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
           </section>
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <section className="flex flex-col items-center py-16 text-slate-400">
             <Bell size={40} className="mb-3 opacity-40" />
-            <p>Không có thông báo</p>
+            <p>{search.trim() ? "Không tìm thấy thông báo phù hợp" : "Không có thông báo"}</p>
           </section>
         ) : (
           <section className="divide-y divide-slate-50">
-            {items.map((n) => (
+            {filteredItems.map((n) => (
               <Link
                 key={n.notificationId}
                 href={`/notifications/${n.notificationId}`}

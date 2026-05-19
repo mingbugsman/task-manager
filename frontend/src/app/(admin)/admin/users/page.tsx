@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,18 @@ import type { UserListItem } from "@/src/types/api.types";
 export default function AdminUsersPage() {
   const { isReady } = useAuthReady();
   const [users, setUsers] = useState<UserListItem[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.userName.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q)
+    );
+  }, [users, search]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -27,8 +38,11 @@ export default function AdminUsersPage() {
     <section>
       <AppHeader
         title="Quản lý User"
-        subtitle={`${users.length} người dùng trong hệ thống`}
-        showFilter={false}
+        subtitle={`${filteredUsers.length} / ${users.length} người dùng`}
+        showSearch
+        searchPlaceholder="Tìm theo tên, email..."
+        searchValue={search}
+        onSearchChange={setSearch}
       />
 
       <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -50,7 +64,7 @@ export default function AdminUsersPage() {
                 </td>
               </tr>
             ) : (
-              users.map((u) => (
+              filteredUsers.map((u) => (
                 <tr key={u.userId} className="border-b border-slate-50 hover:bg-slate-50/50">
                   <td className="px-6 py-4 font-mono text-slate-500">{u.userId}</td>
                   <td className="px-4 py-4 font-medium text-slate-900">{u.userName}</td>

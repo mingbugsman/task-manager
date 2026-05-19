@@ -104,6 +104,15 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             """)
     long countOverdueByProject(@Param("projectId") Long projectId, @Param("now") LocalDateTime now);
 
+    @Query("""
+            SELECT t FROM Task t
+            LEFT JOIN FETCH t.assignee
+            WHERE t.project.projectId = :projectId
+              AND t.deletedAt IS NULL
+            ORDER BY t.createdAt ASC
+            """)
+    List<Task> findAllActiveByProjectId(@Param("projectId") Long projectId);
+
     // Soft delete toàn bộ task theo project
     @Modifying
     @Query("""

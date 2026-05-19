@@ -1,13 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CalendarDayPanel } from "./CalendarDayPanel";
 import { CalendarMonthGrid } from "./CalendarMonthGrid";
 import { CalendarWeekGrid } from "./CalendarWeekGrid";
 import { CalendarTodayList } from "./CalendarTodayList";
-import { useCalendarTasks } from "@/src/features/calendar/hooks/useCalendarTasks";
+import {
+  useCalendarTasks,
+  type CalendarTask,
+} from "@/src/features/calendar/hooks/useCalendarTasks";
 import {
   addMonths,
   addWeeks,
@@ -26,14 +30,31 @@ const VIEW_OPTIONS: { id: CalendarViewMode; label: string }[] = [
 export function CalendarView() {
   const { tasksByDate, loading, isReady } = useCalendarTasks();
   const today = useMemo(() => startOfDay(new Date()), []);
+  const [search, setSearch] = useState("");
   const [view, setView] = useState<CalendarViewMode>("month");
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
+  const filteredTasksByDate = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return tasksByDate;
+
+    const map = new Map<string, CalendarTask[]>();
+    for (const [key, list] of tasksByDate) {
+      const filtered = list.filter(
+        (t) =>
+          t.taskName.toLowerCase().includes(q) ||
+          t.projectName.toLowerCase().includes(q)
+      );
+      if (filtered.length > 0) map.set(key, filtered);
+    }
+    return map;
+  }, [tasksByDate, search]);
+
   const selectedTasks = useMemo(() => {
     if (!selectedDate) return [];
-    return tasksByDate.get(toDateKey(selectedDate)) ?? [];
-  }, [selectedDate, tasksByDate]);
+    return filteredTasksByDate.get(toDateKey(selectedDate)) ?? [];
+  }, [selectedDate, filteredTasksByDate]);
 
   const headerLabel = useMemo(() => {
     if (view === "month") return formatMonthYear(cursor);
@@ -84,7 +105,21 @@ export function CalendarView() {
           </section>
         </section>
 
-        <section className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <section className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <section className="relative">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <Input
+              className="w-full min-w-[220px] rounded-xl border-slate-200 bg-white pl-9 sm:w-64"
+              placeholder="Tìm tác vụ trên lịch..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Tìm tác vụ trên lịch"
+            />
+          </section>
+          <section className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           {VIEW_OPTIONS.map((opt) => (
             <button
               key={opt.id}
@@ -106,6 +141,7 @@ export function CalendarView() {
               {opt.label}
             </button>
           ))}
+          </section>
         </section>
       </header>
 
@@ -138,7 +174,7 @@ export function CalendarView() {
               cursor={cursor}
               selectedDate={selectedDate}
               today={today}
-              tasksByDate={tasksByDate}
+              tasksByDate={filteredTasksByDate}
               onSelectDate={setSelectedDate}
             />
           ) : null}
@@ -148,7 +184,7 @@ export function CalendarView() {
               cursor={cursor}
               selectedDate={selectedDate}
               today={today}
-              tasksByDate={tasksByDate}
+              tasksByDate={filteredTasksByDate}
               onSelectDate={setSelectedDate}
             />
           ) : null}
@@ -156,7 +192,7 @@ export function CalendarView() {
           {view === "today" ? (
             <CalendarTodayList
               today={today}
-              tasksByDate={tasksByDate}
+              tasksByDate={filteredTasksByDate}
               onSelectDate={setSelectedDate}
             />
           ) : null}
@@ -166,7 +202,7 @@ export function CalendarView() {
           selectedDate={view === "today" ? today : selectedDate}
           tasks={
             view === "today"
-              ? tasksByDate.get(toDateKey(today)) ?? []
+              ? filteredTasksByDate.get(toDateKey(today)) ?? []
               : selectedTasks
           }
         />

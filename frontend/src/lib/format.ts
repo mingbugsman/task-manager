@@ -52,6 +52,15 @@ export function getInitials(name: string): string {
 }
 
 export function getAvatarUrl(name: string, url?: string): string {
-  if (url) return url;
+  if (url?.trim()) {
+    if (
+      url.startsWith("blob:") ||
+      url.startsWith("data:") ||
+      url.startsWith("http://") ||
+      url.startsWith("https://")
+    ) {
+      return url;
+    }
+  }
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 }

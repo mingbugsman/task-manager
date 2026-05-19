@@ -33,6 +33,12 @@ public class ProjectMemberResponse implements Serializable {
 
     private UserSummaryResponse user;
 
+    /** Field phẳng — FE đọc trực tiếp khi cần, đồng bộ với {@link #user}. */
+    private Long userId;
+    private String userName;
+    private String userEmail;
+    private String userAvatarUrl;
+
     /** Admin / Lead / Member / Viewer */
     private String role;
 

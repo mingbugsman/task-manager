@@ -34,7 +34,9 @@ export default function TasksPage() {
     <section>
       <AppHeader
         title="Tất Cả Tác Vụ"
-        subtitle={`${tasks.length} tác vụ được giao cho bạn`}
+        subtitle={`${filtered.length} / ${tasks.length} tác vụ`}
+        showSearch
+        searchPlaceholder="Tìm theo tên tác vụ..."
         searchValue={search}
         onSearchChange={setSearch}
       />

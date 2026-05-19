@@ -1,4 +1,5 @@
 import axiosClient from "@/src/lib/axios";
+import { normalizeProjectMember } from "@/src/lib/normalize-user";
 import type {
   ApiResponse,
   MemberStatistic,
@@ -9,13 +10,26 @@ import type {
 const membersPath = (projectId: number) => `/api/v1/projects/${projectId}/members`;
 
 export const projectMemberApi = {
-  getMembers: (
+  getMembers: async (
     projectId: number,
     params?: { role?: string; page?: number; size?: number }
-  ) =>
-    axiosClient.get<ApiResponse<PageResponse<ProjectMember>>>(membersPath(projectId), {
-      params: { page: 0, size: 50, ...params },
-    }),
+  ) => {
+    const res = await axiosClient.get<ApiResponse<PageResponse<ProjectMember>>>(
+      membersPath(projectId),
+      { params: { page: 0, size: 50, ...params } }
+    );
+    const items = (res.data.data?.items ?? []).map((m) => normalizeProjectMember(m));
+    return {
+      ...res,
+      data: {
+        ...res.data,
+        data: {
+          ...res.data.data,
+          items,
+        },
+      },
+    };
+  },
 
   getStatistic: (projectId: number) =>
     axiosClient.get<ApiResponse<MemberStatistic>>(`${membersPath(projectId)}/statistic`),

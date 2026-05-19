@@ -16,10 +16,10 @@ export interface PageResponse<T> {
 }
 
 export interface UserSummary {
-  userId: number;
-  userName: string;
-  avatarUrl?: string;
-  email?: string;
+  userId?: number | null;
+  userName?: string | null;
+  avatarUrl?: string | null;
+  email?: string | null;
 }
 
 export interface UserDetail {
@@ -107,6 +107,11 @@ export interface ProjectMember {
   projectMemberId: number;
   projectId: number;
   user: UserSummary;
+  /** Field phẳng từ API (đồng bộ với user) */
+  userId?: number | null;
+  userName?: string | null;
+  userEmail?: string | null;
+  userAvatarUrl?: string | null;
   role: string;
   isManager: boolean;
   joinedAt?: string;
@@ -184,6 +189,52 @@ export interface TaskStatistic {
   inProgressCount: number;
   doneCount: number;
   overdueCount: number;
+}
+
+export interface ProjectAnalytics {
+  progressPercent: number;
+  totalTasks: number;
+  doneCount: number;
+  inProgressCount: number;
+  reviewCount: number;
+  overdueCount: number;
+  memberCount: number;
+  avgTasksPerMember: number;
+  progressOverTime: { label: string; value: number }[];
+  statusDistribution: {
+    status: string;
+    label: string;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
+  memberPerformance: {
+    userId: number;
+    userName: string;
+    avatarUrl?: string;
+    assignedCount: number;
+    completedCount: number;
+  }[];
+  monthlyTaskFlow: {
+    label: string;
+    createdCount: number;
+    completedCount: number;
+  }[];
+  priorityDistribution: {
+    key: string;
+    label: string;
+    count: number;
+    color: string;
+  }[];
+  memberCompletions: {
+    userId: number;
+    userName: string;
+    avatarUrl?: string;
+    role: string;
+    assignedCount: number;
+    completedCount: number;
+    completionPercent: number;
+  }[];
 }
 
 export interface ActivityLog {

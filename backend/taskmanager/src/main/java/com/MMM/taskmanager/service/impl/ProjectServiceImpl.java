@@ -28,10 +28,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -363,6 +369,213 @@ public class ProjectServiceImpl implements ProjectService {
         project.setUpdatedBy(userRepository.getReferenceById(userId));
 
         log.info("Soft deleted project id={} by userId={}", projectId, userId);
+    }
+
+    @Override
+    @Transactional
+    public ProjectAnalyticsResponse getAnalytics(Long projectId) {
+        Long userId = getCurrentUserId();
+
+        projectRepository.findByProjectIdAndDeletedAtIsNull(projectId)
+                .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+
+        boolean isMember = projectRepository.existsByProjectIdAndUserId(projectId, userId);
+        if (!(SecurityUtils.isAdmin() || isMember)) {
+            throw new AppException(ErrorCode.FORBIDDEN);
+        }
+
+        List<Task> tasks = taskRepository.findAllActiveByProjectId(projectId);
+        List<ProjectMember> members = projectMemberRepository.findAllByProjectId(projectId);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
+
+        long total = tasks.size();
+        long done = countByStatus(tasks, "done");
+        long todo = countByStatus(tasks, "todo");
+        long inProgress = countByStatus(tasks, "in progress");
+        long review = countByStatus(tasks, "review");
+        long overdue = tasks.stream()
+                .filter(t -> t.getDueAt() != null && t.getDueAt().isBefore(now))
+                .filter(t -> !isDoneStatus(t.getStatus()))
+                .count();
+
+        int progressPercent = total == 0 ? 0 : (int) Math.round((double) done / total * 100);
+        long memberCount = members.size();
+        double avgTasksPerMember = memberCount == 0 ? 0 : Math.round((double) total / memberCount * 10) / 10.0;
+
+        return ProjectAnalyticsResponse.builder()
+                .progressPercent(progressPercent)
+                .totalTasks(total)
+                .doneCount(done)
+                .inProgressCount(inProgress)
+                .reviewCount(review)
+                .overdueCount(overdue)
+                .memberCount(memberCount)
+                .avgTasksPerMember(avgTasksPerMember)
+                .progressOverTime(buildWeeklyProgress(tasks, today))
+                .statusDistribution(buildStatusDistribution(todo, inProgress, review, done, total))
+                .memberPerformance(buildMemberPerformance(members, tasks))
+                .monthlyTaskFlow(buildMonthlyFlow(tasks))
+                .priorityDistribution(buildPriorityDistribution(tasks))
+                .memberCompletions(buildMemberCompletions(members, tasks))
+                .build();
+    }
+
+    private List<ProjectAnalyticsResponse.ChartPoint> buildWeeklyProgress(List<Task> tasks, LocalDate today) {
+        List<ProjectAnalyticsResponse.ChartPoint> points = new ArrayList<>();
+        for (int w = 0; w < 6; w++) {
+            LocalDate weekEnd = today.minusWeeks(5L - w);
+            long cumulativeDone = tasks.stream()
+                    .filter(t -> isDoneStatus(t.getStatus()))
+                    .filter(t -> t.getUpdatedAt() != null
+                            && !t.getUpdatedAt().toLocalDate().isAfter(weekEnd))
+                    .count();
+            points.add(ProjectAnalyticsResponse.ChartPoint.builder()
+                    .label("Tuần " + (w + 1))
+                    .value(cumulativeDone)
+                    .build());
+        }
+        return points;
+    }
+
+    private List<ProjectAnalyticsResponse.StatusSlice> buildStatusDistribution(
+            long todo, long inProgress, long review, long done, long total) {
+        List<ProjectAnalyticsResponse.StatusSlice> slices = new ArrayList<>();
+        addStatusSlice(slices, "Todo", "To Do", todo, total, "#EF4444");
+        addStatusSlice(slices, "In Progress", "In Progress", inProgress, total, "#EAB308");
+        addStatusSlice(slices, "Review", "Review", review, total, "#A855F7");
+        addStatusSlice(slices, "Done", "Done", done, total, "#22C55E");
+        return slices;
+    }
+
+    private void addStatusSlice(
+            List<ProjectAnalyticsResponse.StatusSlice> slices,
+            String status,
+            String label,
+            long count,
+            long total,
+            String color) {
+        int percent = total == 0 ? 0 : (int) Math.round((double) count / total * 100);
+        slices.add(ProjectAnalyticsResponse.StatusSlice.builder()
+                .status(status)
+                .label(label)
+                .count(count)
+                .percent(percent)
+                .color(color)
+                .build());
+    }
+
+    private List<ProjectAnalyticsResponse.MemberPerformanceBar> buildMemberPerformance(
+            List<ProjectMember> members, List<Task> tasks) {
+        Map<Long, long[]> countsByUser = new HashMap<>();
+        for (Task task : tasks) {
+            if (task.getAssignee() == null) continue;
+            Long uid = task.getAssignee().getUserId();
+            long[] counts = countsByUser.computeIfAbsent(uid, k -> new long[2]);
+            counts[0]++;
+            if (isDoneStatus(task.getStatus())) {
+                counts[1]++;
+            }
+        }
+
+        return members.stream()
+                .filter(pm -> pm.getUser() != null)
+                .map(pm -> {
+                    User u = pm.getUser();
+                    long[] c = countsByUser.getOrDefault(u.getUserId(), new long[]{0, 0});
+                    return ProjectAnalyticsResponse.MemberPerformanceBar.builder()
+                            .userId(u.getUserId())
+                            .userName(u.getUserName())
+                            .avatarUrl(u.getAvatarUrl())
+                            .assignedCount(c[0])
+                            .completedCount(c[1])
+                            .build();
+                })
+                .sorted(Comparator.comparing(ProjectAnalyticsResponse.MemberPerformanceBar::getUserName,
+                        Comparator.nullsLast(String::compareToIgnoreCase)))
+                .collect(Collectors.toList());
+    }
+
+    private List<ProjectAnalyticsResponse.MonthlyFlow> buildMonthlyFlow(List<Task> tasks) {
+        List<ProjectAnalyticsResponse.MonthlyFlow> flows = new ArrayList<>();
+        YearMonth current = YearMonth.now();
+        for (int i = 3; i >= 0; i--) {
+            YearMonth ym = current.minusMonths(i);
+            long created = tasks.stream()
+                    .filter(t -> t.getCreatedAt() != null
+                            && YearMonth.from(t.getCreatedAt()).equals(ym))
+                    .count();
+            long completed = tasks.stream()
+                    .filter(t -> isDoneStatus(t.getStatus()))
+                    .filter(t -> t.getUpdatedAt() != null
+                            && YearMonth.from(t.getUpdatedAt()).equals(ym))
+                    .count();
+            flows.add(ProjectAnalyticsResponse.MonthlyFlow.builder()
+                    .label("Tháng " + ym.getMonthValue())
+                    .createdCount(created)
+                    .completedCount(completed)
+                    .build());
+        }
+        return flows;
+    }
+
+    private List<ProjectAnalyticsResponse.PriorityBar> buildPriorityDistribution(List<Task> tasks) {
+        long high = tasks.stream().filter(t -> t.getPriority() != null && t.getPriority() >= 3).count();
+        long medium = tasks.stream().filter(t -> t.getPriority() != null && t.getPriority() == 2).count();
+        long low = tasks.stream().filter(t -> t.getPriority() == null || t.getPriority() <= 1).count();
+        List<ProjectAnalyticsResponse.PriorityBar> bars = new ArrayList<>();
+        bars.add(ProjectAnalyticsResponse.PriorityBar.builder()
+                .key("high").label("High").count(high).color("#EF4444").build());
+        bars.add(ProjectAnalyticsResponse.PriorityBar.builder()
+                .key("medium").label("Medium").count(medium).color("#F97316").build());
+        bars.add(ProjectAnalyticsResponse.PriorityBar.builder()
+                .key("low").label("Low").count(low).color("#22C55E").build());
+        return bars;
+    }
+
+    private List<ProjectAnalyticsResponse.MemberCompletionRow> buildMemberCompletions(
+            List<ProjectMember> members, List<Task> tasks) {
+        Map<Long, long[]> countsByUser = new HashMap<>();
+        for (Task task : tasks) {
+            if (task.getAssignee() == null) continue;
+            Long uid = task.getAssignee().getUserId();
+            long[] counts = countsByUser.computeIfAbsent(uid, k -> new long[2]);
+            counts[0]++;
+            if (isDoneStatus(task.getStatus())) {
+                counts[1]++;
+            }
+        }
+
+        return members.stream()
+                .filter(pm -> pm.getUser() != null)
+                .map(pm -> {
+                    User u = pm.getUser();
+                    long[] c = countsByUser.getOrDefault(u.getUserId(), new long[]{0, 0});
+                    int pct = c[0] == 0 ? 0 : (int) Math.round((double) c[1] / c[0] * 100);
+                    return ProjectAnalyticsResponse.MemberCompletionRow.builder()
+                            .userId(u.getUserId())
+                            .userName(u.getUserName())
+                            .avatarUrl(u.getAvatarUrl())
+                            .role(pm.getRole())
+                            .assignedCount(c[0])
+                            .completedCount(c[1])
+                            .completionPercent(pct)
+                            .build();
+                })
+                .sorted(Comparator.comparing(ProjectAnalyticsResponse.MemberCompletionRow::getCompletionPercent)
+                        .reversed())
+                .collect(Collectors.toList());
+    }
+
+    private long countByStatus(List<Task> tasks, String statusKey) {
+        return tasks.stream()
+                .filter(t -> t.getStatus() != null
+                        && t.getStatus().equalsIgnoreCase(statusKey))
+                .count();
+    }
+
+    private boolean isDoneStatus(String status) {
+        return status != null && status.equalsIgnoreCase("done");
     }
 
     public Long getCurrentUserId() {

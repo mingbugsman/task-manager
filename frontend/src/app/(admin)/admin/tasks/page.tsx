@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { RecentTasksTable } from "@/src/components/dashboard/RecentTasksTable";
@@ -11,7 +11,14 @@ import type { TaskSummary } from "@/src/types/api.types";
 export default function AdminTasksPage() {
   const { isReady } = useAuthReady();
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const filteredTasks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter((t) => t.taskName.toLowerCase().includes(q));
+  }, [tasks, search]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -43,15 +50,18 @@ export default function AdminTasksPage() {
     <section>
       <AppHeader
         title="Quản lý Task"
-        subtitle={`${tasks.length} tác vụ trên toàn hệ thống`}
-        showFilter={false}
+        subtitle={`${filteredTasks.length} / ${tasks.length} tác vụ`}
+        showSearch
+        searchPlaceholder="Tìm task hệ thống..."
+        searchValue={search}
+        onSearchChange={setSearch}
       />
       {loading ? (
         <section className="flex h-48 items-center justify-center">
           <section className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
         </section>
       ) : (
-        <RecentTasksTable tasks={tasks} linkToDetail />
+        <RecentTasksTable tasks={filteredTasks} linkToDetail />
       )}
     </section>
   );

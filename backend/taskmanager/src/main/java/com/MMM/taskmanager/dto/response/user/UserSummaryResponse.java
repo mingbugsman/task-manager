@@ -17,6 +17,7 @@ public class UserSummaryResponse implements Serializable {
 
     private Long userId;
     private String userName;
+    private String email;
 
     /**
      * URL ảnh đại diện

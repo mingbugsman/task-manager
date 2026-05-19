@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ProjectDetailView } from "@/src/features/projects/components/ProjectDetailView";
 
 interface PageProps {
@@ -16,5 +17,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     );
   }
 
-  return <ProjectDetailView projectId={id} />;
+  return (
+    <Suspense
+      fallback={
+        <section className="flex h-64 items-center justify-center">
+          <section className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </section>
+      }
+    >
+      <ProjectDetailView projectId={id} />
+    </Suspense>
+  );
 }

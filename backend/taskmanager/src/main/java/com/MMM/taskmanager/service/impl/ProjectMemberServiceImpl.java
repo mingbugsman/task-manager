@@ -40,6 +40,8 @@ import java.util.Map;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectMemberServiceImpl implements ProjectMemberService {
     private static final Logger log = LoggerFactory.getLogger(ProjectMemberServiceImpl.class);
+    private static final String CACHE_MEMBERS = "members:project:v2";
+    private static final String CACHE_MEMBER_STAT = "members:statistic:v2";
     ProjectMemberRepository projectMemberRepository;
       ProjectRepository projectRepository;
       UserRepository userRepository;
@@ -48,7 +50,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(
-            value = "members:project",
+            value = CACHE_MEMBERS,
             key   = "#projectId + ':' + #role + ':' + #page + ':' + #size"
     )
     public PageResponse<ProjectMemberResponse> getMembers(Long projectId, String role, int page, int size) {
@@ -80,7 +82,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "members:statistic", key = "#projectId")
+    @Cacheable(value = CACHE_MEMBER_STAT, key = "#projectId")
     public MemberStatisticResponse getMemberStatistic(Long projectId) {
         log.debug("Lấy thống kê member [projectId={}]", projectId);
 
@@ -109,8 +111,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "members:project",   allEntries = true),
-            @CacheEvict(value = "members:statistic", key = "#projectId")
+            @CacheEvict(value = CACHE_MEMBERS, allEntries = true),
+            @CacheEvict(value = CACHE_MEMBER_STAT, key = "#projectId")
     })
     public ProjectMemberResponse inviteMember(
             Long projectId, Long inviterId, InviteMemberRequest request
@@ -164,8 +166,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "members:project",   allEntries = true),
-            @CacheEvict(value = "members:statistic", key = "#projectId")
+            @CacheEvict(value = CACHE_MEMBERS, allEntries = true),
+            @CacheEvict(value = CACHE_MEMBER_STAT, key = "#projectId")
     })
     public ProjectMemberResponse updateRole(
             Long projectId, Long adminId, Long targetUserId, UpdateMemberRoleRequest request
@@ -205,8 +207,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "members:project",   allEntries = true),
-            @CacheEvict(value = "members:statistic", key = "#projectId")
+            @CacheEvict(value = CACHE_MEMBERS, allEntries = true),
+            @CacheEvict(value = CACHE_MEMBER_STAT, key = "#projectId")
     })
 
     public void kickMember(Long projectId, Long kickerId, Long targetUserId) {
@@ -239,8 +241,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "members:project",   allEntries = true),
-            @CacheEvict(value = "members:statistic", key = "#projectId")
+            @CacheEvict(value = CACHE_MEMBERS, allEntries = true),
+            @CacheEvict(value = CACHE_MEMBER_STAT, key = "#projectId")
     })
     public void leaveProject(Long projectId, Long userId) {
         log.info("Leave project [projectId={}, userId={}]", projectId, userId);

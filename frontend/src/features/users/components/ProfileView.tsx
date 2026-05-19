@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Camera, Mail, Shield, User } from "lucide-react";
+import { Camera, Eye, Mail, Shield, User, X } from "lucide-react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { userApi } from "@/src/features/users/api/user.api";
 import { AppHeader } from "@/src/components/layout/AppHeader";
@@ -23,14 +23,24 @@ export function ProfileView() {
   const { isReady } = useAuthReady();
   const { data: session } = useSession();
   const fileRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
 
   const [user, setUser] = useState<UserDetail | null>(null);
   const [userName, setUserName] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [savedAvatarUrl, setSavedAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const revokePreview = () => {
+    if (previewObjectUrlRef.current) {
+      URL.revokeObjectURL(previewObjectUrlRef.current);
+      previewObjectUrlRef.current = null;
+    }
+  };
 
   const load = () => {
     userApi
@@ -39,7 +49,10 @@ export function ProfileView() {
         const data = res.data.data;
         setUser(data);
         setUserName(data.userName);
-        setAvatarPreview(data.avatarUrl ?? null);
+        setSavedAvatarUrl(data.avatarUrl ?? null);
+        revokePreview();
+        setPreviewUrl(null);
+        setAvatarFile(null);
       })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
@@ -47,7 +60,11 @@ export function ProfileView() {
 
   useEffect(() => {
     if (isReady) load();
+    return () => revokePreview();
   }, [isReady]);
+
+  const displayAvatarSrc = previewUrl ?? savedAvatarUrl ?? undefined;
+  const hasPendingPreview = Boolean(avatarFile && previewUrl);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,9 +77,20 @@ export function ProfileView() {
       setMessage({ type: "err", text: "Ảnh tối đa 5MB" });
       return;
     }
+
+    revokePreview();
+    const objectUrl = URL.createObjectURL(file);
+    previewObjectUrlRef.current = objectUrl;
     setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setPreviewUrl(objectUrl);
     setMessage(null);
+  };
+
+  const clearPreview = () => {
+    revokePreview();
+    setPreviewUrl(null);
+    setAvatarFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +107,6 @@ export function ProfileView() {
         userName: userName.trim(),
         avatar: avatarFile ?? undefined,
       });
-      setAvatarFile(null);
       setMessage({ type: "ok", text: "Cập nhật hồ sơ thành công" });
       load();
       window.dispatchEvent(new Event("user-profile-updated"));
@@ -127,11 +154,17 @@ export function ProfileView() {
               <section className="rounded-full ring-4 ring-white">
                 <Avatar
                   name={userName || user.userName}
-                  src={avatarPreview ?? user.avatarUrl}
+                  src={displayAvatarSrc}
                   size="md"
                   className="h-24 w-24 text-base"
+                  isPreview={hasPendingPreview}
                 />
               </section>
+              {hasPendingPreview ? (
+                <span className="absolute -top-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                  Xem trước
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
@@ -162,7 +195,7 @@ export function ProfileView() {
             </section>
           </section>
 
-          <h1 className="text-xl font-bold text-slate-900">{user.userName}</h1>
+          <h1 className="text-xl font-bold text-slate-900">{userName || user.userName}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
             <Mail size={14} />
             {user.email}
@@ -171,17 +204,85 @@ export function ProfileView() {
         </section>
       </article>
 
+      {hasPendingPreview ? (
+        <article className="rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-5 shadow-sm">
+          <section className="mb-4 flex items-center justify-between">
+            <section className="flex items-center gap-2 text-sm font-semibold text-blue-800">
+              <Eye size={18} />
+              Xem trước ảnh đại diện
+            </section>
+            <button
+              type="button"
+              onClick={clearPreview}
+              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-white"
+            >
+              <X size={14} />
+              Hủy ảnh mới
+            </button>
+          </section>
+          <section className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+            <img
+              src={previewUrl!}
+              alt="Xem trước avatar"
+              className="h-32 w-32 rounded-2xl border-4 border-white object-cover shadow-lg ring-2 ring-blue-200"
+            />
+            <section className="text-center sm:text-left">
+              <p className="text-sm font-medium text-slate-800">{avatarFile?.name}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {avatarFile ? `${(avatarFile.size / 1024).toFixed(0)} KB` : ""} — Nhấn &quot;Lưu thay
+                đổi&quot; để áp dụng
+              </p>
+              <section className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="rounded-xl bg-blue-600 hover:bg-blue-700"
+                  onClick={() => formRef.current?.requestSubmit()}
+                >
+                  Lưu ảnh này
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="rounded-xl" onClick={clearPreview}>
+                  Chọn ảnh khác
+                </Button>
+              </section>
+            </section>
+          </section>
+        </article>
+      ) : null}
+
       <article className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-slate-900">
           <User size={18} className="text-blue-600" />
           Chỉnh sửa hồ sơ
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form ref={formRef} id="profile-form" onSubmit={handleSubmit} className="space-y-5">
           <section>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Tên hiển thị
-            </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Ảnh đại diện</label>
+            <section className="flex flex-wrap items-center gap-4">
+              <Avatar
+                name={userName || user.userName}
+                src={displayAvatarSrc}
+                size="lg"
+                className="h-16 w-16"
+                isPreview={hasPendingPreview}
+              />
+              <section>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  Chọn ảnh
+                </Button>
+                <p className="mt-2 text-xs text-slate-400">PNG, JPG tối đa 5MB</p>
+              </section>
+            </section>
+          </section>
+
+          <section>
+            <label className="mb-2 block text-sm font-medium text-slate-700">Tên hiển thị</label>
             <Input
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
@@ -194,15 +295,11 @@ export function ProfileView() {
 
           <section>
             <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-            <Input
-              value={user.email}
-              disabled
-              className="rounded-xl bg-slate-50 text-slate-500"
-            />
+            <Input value={user.email} disabled className="rounded-xl bg-slate-50 text-slate-500" />
             <p className="mt-1 text-xs text-slate-400">Email không thể thay đổi tại đây</p>
           </section>
 
-          {message && (
+          {message ? (
             <section
               className={`rounded-xl px-4 py-3 text-sm ${
                 message.type === "ok"
@@ -212,14 +309,10 @@ export function ProfileView() {
             >
               {message.text}
             </section>
-          )}
+          ) : null}
 
           <section className="flex flex-wrap gap-3">
-            <Button
-              type="submit"
-              disabled={saving}
-              className="rounded-xl bg-blue-600 hover:bg-blue-700"
-            >
+            <Button type="submit" disabled={saving} className="rounded-xl bg-blue-600 hover:bg-blue-700">
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
             <Button
@@ -229,8 +322,7 @@ export function ProfileView() {
               disabled={saving}
               onClick={() => {
                 setUserName(user.userName);
-                setAvatarFile(null);
-                setAvatarPreview(user.avatarUrl ?? null);
+                clearPreview();
                 setMessage(null);
               }}
             >

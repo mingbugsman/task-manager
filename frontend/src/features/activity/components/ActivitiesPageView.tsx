@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { ActivityFeed } from "@/src/components/dashboard/ActivityFeed";
@@ -12,7 +12,19 @@ import type { ActivityLog } from "@/src/types/api.types";
 export function ActivitiesPageView() {
   const { isReady } = useAuthReady();
   const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const filteredActivities = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return activities;
+    return activities.filter(
+      (a) =>
+        a.userName.toLowerCase().includes(q) ||
+        a.action.toLowerCase().includes(q) ||
+        (a.metadata?.toLowerCase().includes(q) ?? false)
+    );
+  }, [activities, search]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -41,11 +53,14 @@ export function ActivitiesPageView() {
     <section className="mx-auto max-w-2xl">
       <AppHeader
         title="Hoạt Động"
-        subtitle="Lịch sử thao tác trong các dự án của bạn"
-        showFilter={false}
+        subtitle={`${filteredActivities.length} hoạt động`}
+        showSearch
+        searchPlaceholder="Tìm theo người dùng, hành động..."
+        searchValue={search}
+        onSearchChange={setSearch}
       />
       <section className="mt-6 min-h-[480px]">
-        <ActivityFeed activities={activities} showFooter={false} />
+        <ActivityFeed activities={filteredActivities} showFooter={false} />
       </section>
       <p className="mt-4 text-center">
         <Link href="/dashboard" className="text-sm font-medium text-blue-600 hover:underline">

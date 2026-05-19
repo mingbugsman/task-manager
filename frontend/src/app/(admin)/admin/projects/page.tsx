@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { Progress } from "@/components/ui/progress";
@@ -20,17 +20,29 @@ export default function AdminProjectsPage() {
 
     setLoading(true);
     projectApi
-      .getAdminProjects({ search: search || undefined, size: 100 })
+      .getAdminProjects({ size: 100 })
       .then((res) => setProjects(res.data.data.items))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search, isReady]);
+  }, [isReady]);
+
+  const filteredProjects = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(
+      (p) =>
+        p.projectName.toLowerCase().includes(q) ||
+        (p.projectDescription?.toLowerCase().includes(q) ?? false) ||
+        (p.createdByUsername?.toLowerCase().includes(q) ?? false)
+    );
+  }, [projects, search]);
 
   return (
     <section>
       <AppHeader
         title="Quản lý Dự án"
-        subtitle="Toàn bộ dự án trong hệ thống"
+        subtitle={`${filteredProjects.length} / ${projects.length} dự án`}
+        showSearch
         searchPlaceholder="Tìm dự án..."
         searchValue={search}
         onSearchChange={setSearch}
@@ -39,8 +51,12 @@ export default function AdminProjectsPage() {
       <section className="grid gap-4 md:grid-cols-2">
         {loading ? (
           <p className="col-span-2 py-12 text-center text-slate-400">Đang tải...</p>
+        ) : filteredProjects.length === 0 ? (
+          <p className="col-span-2 py-12 text-center text-slate-400">
+            {search.trim() ? "Không tìm thấy dự án phù hợp" : "Không có dự án"}
+          </p>
         ) : (
-          projects.map((p) => (
+          filteredProjects.map((p) => (
             <article
               key={p.projectId}
               className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm"
@@ -51,7 +67,7 @@ export default function AdminProjectsPage() {
                   {PROJECT_STATUS_LABELS[p.status] ?? p.status}
                 </Badge>
               </section>
-              <p className="mb-4 text-sm text-slate-500 line-clamp-2">
+              <p className="mb-4 line-clamp-2 text-sm text-slate-500">
                 {p.projectDescription || "—"}
               </p>
               <Progress value={p.progressRate} />

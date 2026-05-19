@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,12 +57,6 @@ export default function DashboardPage() {
     }).length;
   }, [tasks]);
 
-  const filteredTasks = useMemo(() => {
-    if (!search.trim()) return tasks;
-    const q = search.toLowerCase();
-    return tasks.filter((t) => t.taskName.toLowerCase().includes(q));
-  }, [tasks, search]);
-
   if (loading) {
     return (
       <section className="flex h-64 items-center justify-center">
@@ -77,8 +70,6 @@ export default function DashboardPage() {
       <AppHeader
         title="Dashboard"
         subtitle={`Bạn có ${dueToday} tác vụ cần hoàn thành hôm nay`}
-        searchValue={search}
-        onSearchChange={setSearch}
       />
 
       <section className="mb-6">
@@ -90,7 +81,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_minmax(300px,380px)]">
-        <RecentTasksTable tasks={filteredTasks} />
+        <RecentTasksTable tasks={tasks} />
         <ActivityFeed activities={activities} viewAllHref="/activities" />
       </section>
     </section>
