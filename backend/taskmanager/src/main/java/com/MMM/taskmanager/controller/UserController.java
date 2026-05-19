@@ -36,10 +36,9 @@ public class UserController {
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "userId") String sortBy) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("Quyền hiện tại: " + auth.getAuthorities());
-        return ResponseEntity.ok(ApiResponse.ok(userService.getUsers(page, size, sortBy)));
+            @RequestParam(defaultValue = "userId") String sortBy,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getUsers(page, size, sortBy, search)));
     }
 
     @Operation(summary = "Lấy thông tin chi tiết một User bằng ID")

@@ -80,3 +80,6 @@ logging:
   level:
     org.flywaydb: DEBUG
 
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+

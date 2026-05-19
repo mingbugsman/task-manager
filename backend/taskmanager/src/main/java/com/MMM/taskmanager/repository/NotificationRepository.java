@@ -26,4 +26,22 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     int markAllAsReadByUserId(@Param("userId") Long userId);
 
     Optional<Notification> findByNotificationIdAndUser_UserId(Long notificationId, Long userId);
+
+    @Query("""
+            SELECT n FROM Notification n
+            JOIN n.user u
+            WHERE (:search IS NULL OR :search = ''
+                OR LOWER(n.title) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(n.message) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(u.userName) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))
+            AND (:type IS NULL OR :type = '' OR n.type = :type)
+            ORDER BY n.createdAt DESC
+            """)
+    Page<Notification> findAllForAdmin(
+            @Param("search") String search,
+            @Param("type") String type,
+            Pageable pageable);
+
+    Optional<Notification> findByNotificationId(Long notificationId);
 }

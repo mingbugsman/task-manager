@@ -3,6 +3,7 @@ package com.MMM.taskmanager.service;
 
 import com.MMM.taskmanager.dto.request.project_member.InviteMemberRequest;
 import com.MMM.taskmanager.dto.request.project_member.UpdateMemberRoleRequest;
+import com.MMM.taskmanager.dto.response.project_member.InviteLookupResponse;
 import com.MMM.taskmanager.dto.response.project_member.MemberStatisticResponse;
 import com.MMM.taskmanager.dto.response.project_member.ProjectMemberResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
@@ -20,6 +21,11 @@ public interface ProjectMemberService {
      * GET thống kê member theo role trong project
      */
     MemberStatisticResponse getMemberStatistic(Long projectId);
+
+    /**
+     * GET lookup by email — chỉ tài khoản đã đăng ký mới được mời
+     */
+    InviteLookupResponse lookupInvitee(Long projectId, Long inviterId, String email);
 
     /**
      * POST /api/v1/projects/{projectId}/members

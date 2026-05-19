@@ -111,13 +111,13 @@ public class TaskController {
     }
 
 
-    @DeleteMapping("/projects/{project_id}")
-    public ResponseEntity<ApiResponse<Void>> deleteProject(
+    /** Xóa toàn bộ task trong dự án (không xóa dự án — dùng DELETE /projects/{id} trên ProjectController). */
+    @DeleteMapping("/projects/{project_id}/tasks")
+    public ResponseEntity<ApiResponse<Void>> deleteAllTasksByProject(
             @PathVariable("project_id") Long projectId
     ) {
         taskService.deleteTasksByProject(projectId);
-
-        return ResponseEntity.ok(ApiResponse.ok("Project and related tasks deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.ok("All tasks in project deleted successfully"));
     }
 
 

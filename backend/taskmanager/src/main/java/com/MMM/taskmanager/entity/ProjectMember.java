@@ -47,17 +47,22 @@ public class ProjectMember implements Serializable {
         joinedAt = LocalDateTime.now();
     }
 
-    public boolean isAdmin() {
-        return "Admin".equalsIgnoreCase(role);
+    /** Chủ dự án (Owner) — tương thích bản cũ lưu "Admin". */
+    public boolean isOwner() {
+        return "Owner".equalsIgnoreCase(role) || "Admin".equalsIgnoreCase(role);
     }
 
-    /** Kiểm tra thành viên có phải LEAD không */
+    /** @deprecated dùng {@link #isOwner()} */
+    public boolean isAdmin() {
+        return isOwner();
+    }
+
     public boolean isLead() {
         return "Lead".equalsIgnoreCase(role);
     }
 
-    /** Kiểm tra thành viên có quyền quản lý (ADMIN hoặc LEAD) không */
+    /** OWNER hoặc LEAD */
     public boolean isManager() {
-        return isAdmin() || isLead();
+        return isOwner() || isLead();
     }
 }

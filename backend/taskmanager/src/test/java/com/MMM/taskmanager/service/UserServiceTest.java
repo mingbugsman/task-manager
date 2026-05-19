@@ -122,7 +122,7 @@ public class UserServiceTest {
         when(userMapper.toResponse(mockUser)).thenReturn(mockUserResponse);
 
         // Act
-        PageResponse<UserResponse> result = userService.getUsers(page, size, sortBy);
+        PageResponse<UserResponse> result = userService.getUsers(page, size, sortBy, null);
 
         // Assert
         assertNotNull(result);

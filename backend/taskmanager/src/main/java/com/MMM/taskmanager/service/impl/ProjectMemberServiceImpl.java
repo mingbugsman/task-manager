@@ -2,6 +2,7 @@ package com.MMM.taskmanager.service.impl;
 
 import com.MMM.taskmanager.dto.request.project_member.InviteMemberRequest;
 import com.MMM.taskmanager.dto.request.project_member.UpdateMemberRoleRequest;
+import com.MMM.taskmanager.dto.response.project_member.InviteLookupResponse;
 import com.MMM.taskmanager.dto.response.project_member.MemberStatisticResponse;
 import com.MMM.taskmanager.dto.response.project_member.ProjectMemberResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
@@ -15,6 +16,8 @@ import com.MMM.taskmanager.mapper.ProjectMemberMapper;
 import com.MMM.taskmanager.repository.ProjectMemberRepository;
 import com.MMM.taskmanager.repository.ProjectRepository;
 import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
+import com.MMM.taskmanager.service.ActivityLogRecorder;
 import com.MMM.taskmanager.service.ProjectMemberService;
 
 import lombok.AccessLevel;
@@ -46,6 +49,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
       ProjectRepository projectRepository;
       UserRepository userRepository;
       ProjectMemberMapper projectMemberMapper;
+      ActivityLogRecorder activityLogRecorder;
 
     @Override
     @Transactional(readOnly = true)
@@ -98,13 +102,54 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         return MemberStatisticResponse.builder()
                 .totalMembers(totalMembers)
-                .adminCount(countMap.getOrDefault("Admin",  0L))
+                .adminCount(countMap.getOrDefault("Owner",  0L))
                 .leadCount(countMap.getOrDefault("Lead",    0L))
                 .memberCount(countMap.getOrDefault("Member", 0L))
                 .viewerCount(countMap.getOrDefault("Reviewer", 0L))
                 .build();
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public InviteLookupResponse lookupInvitee(Long projectId, Long inviterId, String email) {
+        validateProjectExists(projectId);
+
+        getMemberOrThrow(projectId, inviterId);
+
+        if (email == null || email.isBlank()) {
+            return InviteLookupResponse.builder()
+                    .found(false)
+                    .alreadyMember(false)
+                    .message("Vui lòng nhập email.")
+                    .build();
+        }
+
+        String normalizedEmail = email.trim();
+
+        return userRepository.findByEmail(normalizedEmail)
+                .map(user -> {
+                    boolean alreadyMember = projectMemberRepository
+                            .existsByProject_ProjectIdAndUser_UserId(projectId, user.getUserId());
+
+                    return InviteLookupResponse.builder()
+                            .found(true)
+                            .userId(user.getUserId())
+                            .userName(user.getUserName())
+                            .email(user.getEmail())
+                            .avatarUrl(user.getAvatarUrl())
+                            .alreadyMember(alreadyMember)
+                            .message(alreadyMember
+                                    ? "Người dùng đã là thành viên dự án."
+                                    : "Có thể mời người dùng này.")
+                            .build();
+                })
+                .orElseGet(() -> InviteLookupResponse.builder()
+                        .found(false)
+                        .alreadyMember(false)
+                        .message("Không tìm thấy tài khoản với email này. Người nhận cần đăng ký trước hoặc dùng link mời.")
+                        .build());
+    }
 
     // 2. INVITE
 
@@ -157,6 +202,18 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         log.info("Mời member thành công [projectId={}, userId={}, role={}]",
                 projectId, request.getUserId(), targetRole.getDisplayName());
 
+        activityLogRecorder.record(
+                "INVITE",
+                ActivityLogEntityType.PROJECT,
+                projectId,
+                projectId,
+                ActivityLogRecorder.metadataJson(
+                        "projectId", String.valueOf(projectId),
+                        "targetUserId", String.valueOf(request.getUserId()),
+                        "role", targetRole.getDisplayName()
+                )
+        );
+
         return projectMemberMapper.toResponseDTO(saved);
     }
 
@@ -186,7 +243,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
 
         // Không cho phép ADMIN tự hạ role của chính mình
         // (tránh project không còn ADMIN)
-        if (adminId.equals(targetUserId) && newRole != ProjectRole.ADMIN) {
+        if (adminId.equals(targetUserId) && newRole != ProjectRole.OWNER) {
             throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);
         }
 
@@ -250,7 +307,7 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
         ProjectMember member = getMemberOrThrow(projectId, userId);
 
         // ADMIN không được rời nếu là ADMIN duy nhất
-        if (ProjectRole.from(member.getRole()) == ProjectRole.ADMIN) {
+        if (ProjectRole.from(member.getRole()) == ProjectRole.OWNER) {
             long adminCount = projectMemberRepository
                     .countByProject_ProjectIdAndRole(projectId, "Admin");
             if (adminCount <= 1) {

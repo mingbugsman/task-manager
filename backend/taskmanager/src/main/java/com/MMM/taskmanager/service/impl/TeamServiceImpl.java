@@ -19,10 +19,12 @@ import java.util.stream.Collectors;
 public class TeamServiceImpl implements TeamService {
 
     private static final Map<String, Integer> ROLE_PRIORITY = Map.of(
+            "OWNER", 0,
             "ADMIN", 0,
             "LEAD", 1,
             "MEMBER", 2,
-            "VIEWER", 3
+            "VIEWER", 3,
+            "REVIEWER", 3
     );
 
     ProjectMemberRepository projectMemberRepository;

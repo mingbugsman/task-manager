@@ -52,6 +52,8 @@ public enum ErrorCode {
     PROJECT_MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_PROJECT_MEMBER_ALREADY_EXISTS", "User is already a member of this project."),
     PROJECT_MEMBER_INVALID_ROLE(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_INVALID_ROLE", "Invalid project member role."),
     PROJECT_MEMBER_CANNOT_REMOVE_OWNER(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_CANNOT_REMOVE_OWNER", "Cannot remove the project owner."),
+    PROJECT_INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_PROJECT_INVITE_LINK_NOT_FOUND", "Invite link not found."),
+    PROJECT_INVITE_LINK_EXPIRED(HttpStatus.BAD_REQUEST, "ERR_PROJECT_INVITE_LINK_EXPIRED", "Invite link has expired or been revoked."),
 
     // ----------- TASK ERROR --------------------
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_TASK_NOT_FOUND", "Task not found."),

@@ -60,8 +60,11 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     public PageResponse<ActivityLogResponse> getActivitiesByProject(Long projectId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<ActivityLog> logPage = activityLogRepository
-                .findByProject_ProjectIdOrderByCreatedAtDesc(projectId, pageable);
+        if (!projectRepository.existsById(projectId)) {
+            throw new AppException(ErrorCode.PROJECT_NOT_FOUND);
+        }
+
+        Page<ActivityLog> logPage = activityLogRepository.findByProjectScope(projectId, pageable);
 
         return buildPageResponse(logPage, page, size);
     }
@@ -82,6 +85,14 @@ public class ActivityLogServiceImpl implements ActivityLogService {
         Long userId= SecurityUtils.getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
         Page<ActivityLog> logPage = activityLogRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
+        return buildPageResponse(logPage, page, size);
+    }
+
+    @Override
+    public PageResponse<ActivityLogResponse> getAllActivitiesForAdmin(int page, int size, String search) {
+        Pageable pageable = PageRequest.of(page, size);
+        String q = search != null && !search.isBlank() ? search.trim() : null;
+        Page<ActivityLog> logPage = activityLogRepository.findAllForAdmin(q, pageable);
         return buildPageResponse(logPage, page, size);
     }
 

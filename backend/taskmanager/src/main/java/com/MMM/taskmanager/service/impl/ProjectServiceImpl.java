@@ -3,8 +3,11 @@ package com.MMM.taskmanager.service.impl;
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
 import com.MMM.taskmanager.dto.response.project.*;
+import com.MMM.taskmanager.dto.response.task.LabelSummaryResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
 import com.MMM.taskmanager.entity.*;
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
+import com.MMM.taskmanager.entity.type.ProjectRole;
 import com.MMM.taskmanager.entity.type.ProjectStatus;
 import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
@@ -13,6 +16,7 @@ import com.MMM.taskmanager.repository.ProjectMemberRepository;
 import com.MMM.taskmanager.repository.ProjectRepository;
 import com.MMM.taskmanager.repository.TaskRepository;
 import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.service.ActivityLogRecorder;
 import com.MMM.taskmanager.service.ProjectService;
 import com.MMM.taskmanager.util.SecurityUtils;
 import jakarta.transaction.Transactional;
@@ -50,6 +54,7 @@ public class ProjectServiceImpl implements ProjectService {
     UserRepository userRepository;
     ProjectMemberRepository projectMemberRepository;
     TaskRepository taskRepository;
+    ActivityLogRecorder activityLogRecorder;
 
     private static final String CACHE_PROJECT_LIST    = "project:list";
     private static final String CACHE_PROJECT_DETAIL  = "project:detail";
@@ -192,7 +197,15 @@ public class ProjectServiceImpl implements ProjectService {
                                     .assigneeId(task.getAssignee() != null ? task.getAssignee().getUserId() : null)
                                     .assigneeUsername(task.getAssignee() != null ? task.getAssignee().getUserName() : null)
                                     .assigneeAvatarUrl(task.getAssignee() != null ? task.getAssignee().getAvatarUrl() : null)
-                                    .labels(task.getLabels() != null ? task.getLabels().stream().map(Label::getLabelName).toList() : List.of())
+                                    .labels(task.getLabels() != null
+                                            ? task.getLabels().stream()
+                                            .map(l -> LabelSummaryResponse.builder()
+                                                    .labelId(l.getLabelId())
+                                                    .labelName(l.getLabelName())
+                                                    .colorCode(l.getColorCode())
+                                                    .build())
+                                            .toList()
+                                            : List.of())
                                     .build())
                             .toList();
 
@@ -259,8 +272,10 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {CACHE_PROJECT_LIST, CACHE_PROJECT_STATS},
-            key = "#root.target.getCurrentUserId()")
+    @Caching(evict = {
+            @CacheEvict(value = CACHE_PROJECT_LIST, allEntries = true),
+            @CacheEvict(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()")
+    })
     public ProjectDetailResponse createProject(ProjectRequest request) {
         Long userId = getCurrentUserId();
 
@@ -278,11 +293,21 @@ public class ProjectServiceImpl implements ProjectService {
                 .project(saved)
                 .user(user)
                 .joinedAt(LocalDateTime.now())
-                .role("Admin")
+                .role(ProjectRole.OWNER.getDisplayName())
                 .build();
         projectMemberRepository.save(member);
 
         log.info("Created project id={} by userId={}", saved.getProjectId(), userId);
+        activityLogRecorder.record(
+                "CREATE",
+                ActivityLogEntityType.PROJECT,
+                saved.getProjectId(),
+                saved.getProjectId(),
+                ActivityLogRecorder.metadataJson(
+                        "projectId", String.valueOf(saved.getProjectId()),
+                        "projectName", saved.getProjectName()
+                )
+        );
         return projectMapper.toDetailResponse(saved);
     }
 
@@ -290,7 +315,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CACHE_PROJECT_DETAIL, key = "#projectId"),
-            @CacheEvict(value = CACHE_PROJECT_LIST, key = "#root.target.getCurrentUserId()"),
+            @CacheEvict(value = CACHE_PROJECT_LIST, allEntries = true),
             @CacheEvict(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()")
     })
     public ProjectDetailResponse updateProject(Long projectId, ProjectRequest request) {
@@ -303,6 +328,16 @@ public class ProjectServiceImpl implements ProjectService {
         project.setUpdatedBy(userRepository.getReferenceById(userId));
 
         log.info("Updated project id={} by userId={}", projectId, userId);
+        activityLogRecorder.record(
+                "UPDATE",
+                ActivityLogEntityType.PROJECT,
+                projectId,
+                projectId,
+                ActivityLogRecorder.metadataJson(
+                        "projectId", String.valueOf(projectId),
+                        "projectName", project.getProjectName()
+                )
+        );
         return projectMapper.toDetailResponse(project);
     }
 
@@ -310,7 +345,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CACHE_PROJECT_DETAIL, key = "#projectId"),
-            @CacheEvict(value = CACHE_PROJECT_LIST, key = "#root.target.getCurrentUserId()"),
+            @CacheEvict(value = CACHE_PROJECT_LIST, allEntries = true),
             @CacheEvict(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()")
     })
     public ProjectDetailResponse updateProjectStatus(Long projectId, UpdateProjectStatusRequest request) {
@@ -328,7 +363,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CACHE_PROJECT_DETAIL, key = "#projectId"),
-            @CacheEvict(value = CACHE_PROJECT_LIST, key = "#root.target.getCurrentUserId()"),
+            @CacheEvict(value = CACHE_PROJECT_LIST, allEntries = true),
             @CacheEvict(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()")
     })
     public ProjectDetailResponse restoreProject(Long projectId) {
@@ -355,9 +390,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = CACHE_PROJECT_DETAIL, key = "#projectId"),
-            @CacheEvict(value = CACHE_PROJECT_LIST, key = "#root.target.getCurrentUserId()"),
+            @CacheEvict(value = CACHE_PROJECT_LIST, allEntries = true),
             @CacheEvict(value = CACHE_PROJECT_STATS, key = "#root.target.getCurrentUserId()"),
-            @CacheEvict(value = CACHE_PROJECT_BOARD, key = "#projectId")
+            @CacheEvict(value = CACHE_PROJECT_BOARD, allEntries = true)
     })
 
     public void deleteProject(Long projectId) {
@@ -369,6 +404,16 @@ public class ProjectServiceImpl implements ProjectService {
         project.setUpdatedBy(userRepository.getReferenceById(userId));
 
         log.info("Soft deleted project id={} by userId={}", projectId, userId);
+        activityLogRecorder.record(
+                "DELETE",
+                ActivityLogEntityType.PROJECT,
+                projectId,
+                projectId,
+                ActivityLogRecorder.metadataJson(
+                        "projectId", String.valueOf(projectId),
+                        "projectName", project.getProjectName()
+                )
+        );
     }
 
     @Override
@@ -589,10 +634,13 @@ public class ProjectServiceImpl implements ProjectService {
 
 
         boolean isSystemAdmin = SecurityUtils.isAdmin();
-        boolean isProjectAdmin = projectMemberRepository
-                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "Admin");
+        boolean isProjectOwner = projectMemberRepository
+                .existsByProject_ProjectIdAndUser_UserIdAndRole(
+                        projectId, userId, ProjectRole.OWNER.getDisplayName())
+                || projectMemberRepository.existsByProject_ProjectIdAndUser_UserIdAndRole(
+                        projectId, userId, "Admin");
 
-        if (!isSystemAdmin && !isProjectAdmin) {
+        if (!isSystemAdmin && !isProjectOwner) {
             throw new AppException(ErrorCode.PROJECT_ACCESS_DENIED);
         }
 

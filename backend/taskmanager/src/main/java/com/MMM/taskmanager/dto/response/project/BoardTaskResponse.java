@@ -1,5 +1,6 @@
 package com.MMM.taskmanager.dto.response.project;
 
+import com.MMM.taskmanager.dto.response.task.LabelSummaryResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,6 +24,6 @@ public class BoardTaskResponse implements Serializable {
     private Long assigneeId;
     private String assigneeUsername;
     private String assigneeAvatarUrl;
-    private List<String> labels;
+    private List<LabelSummaryResponse> labels;
 
 }
