@@ -62,6 +62,8 @@ export const USER_NAV: NavItem[] = [
   { href: "/notifications", label: "Thông Báo", icon: "Bell", badge: true },
   { href: "/profile", label: "Hồ Sơ", icon: "User" },
   { href: "/about", label: "Giới Thiệu", icon: "Info" },
+  { href: "/contact", label: "Liên Hệ", icon: "Mail" },
+  { href: "/help", label: "Trợ Giúp", icon: "HelpCircle" },
 ];
 
 export const ADMIN_NAV = [

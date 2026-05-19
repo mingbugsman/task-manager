@@ -125,6 +125,82 @@ export interface MemberStatistic {
   viewerCount: number;
 }
 
+export interface TeamSharedProject {
+  projectId: number;
+  projectName: string;
+  role: string;
+}
+
+export interface TeamCollaborator {
+  userId: number;
+  userName?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  primaryRole: string;
+  sharedProjectCount: number;
+  activeTaskCount: number;
+  sharedProjects: TeamSharedProject[];
+}
+
+export interface TeamOverview {
+  collaboratorCount: number;
+  projectCount: number;
+  activeAssignedTaskCount: number;
+}
+
+export interface TeamDirectory {
+  overview: TeamOverview;
+  collaborators: TeamCollaborator[];
+}
+
+export type ReportPeriodKey = "WEEK" | "MONTH" | "QUARTER";
+
+export interface PersonalReport {
+  period: ReportPeriodKey;
+  summary: {
+    totalTasks: number;
+    completionPercent: number;
+    overdueCount: number;
+    avgCompletionDays: number;
+    totalTasksTrend: string;
+    completionTrend: string;
+    overdueTrend: string;
+    avgDaysTrend: string;
+  };
+  activityTrend: {
+    label: string;
+    completedCount: number;
+    createdCount: number;
+  }[];
+  statusDistribution: {
+    status: string;
+    label: string;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
+  projectProgress: {
+    projectId: number;
+    projectName: string;
+    progressPercent: number;
+    totalTasks: number;
+    doneCount: number;
+  }[];
+  projectWorkload: {
+    projectId: number;
+    projectName: string;
+    completedCount: number;
+    inProgressCount: number;
+  }[];
+  priorityDistribution: {
+    key: string;
+    label: string;
+    count: number;
+    percent: number;
+    color: string;
+  }[];
+}
+
 export interface LabelSummary {
   labelId: number;
   labelName: string;

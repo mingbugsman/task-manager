@@ -94,6 +94,11 @@ public class ReactionServiceImpl implements ReactionService {
                         .userReacted(false)
                         .build();
             } else {
+                reactionRepository
+                        .findByEntityTypeAndEntityIdAndUser_UserIdAndReactionType(
+                                type, entityId, userId, request.getReactionType())
+                        .filter(other -> !other.getReactionId().equals(reaction.getReactionId()))
+                        .ifPresent(reactionRepository::delete);
 
                 reaction.setReactionType(request.getReactionType());
                 reactionRepository.save(reaction);

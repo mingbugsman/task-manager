@@ -8,9 +8,6 @@ import {
   Calendar,
   Clock,
   FolderKanban,
-  MessageSquare,
-  Paperclip,
-  Send,
   User,
 } from "lucide-react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
@@ -18,9 +15,12 @@ import { taskApi } from "@/src/features/tasks/api/task.api";
 import { commentApi } from "@/src/features/comments/api/comment.api";
 import { attachmentApi } from "@/src/features/attachments/api/attachment.api";
 import { activityApi } from "@/src/features/activity/api/activity.api";
+import { TaskAttachmentsPanel } from "./TaskAttachmentsPanel";
+import { TaskCommentsSection } from "./TaskCommentsSection";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { presentActivity } from "@/src/lib/activityPresentation";
 import { TASK_STATUS_OPTIONS } from "@/src/lib/constants";
 import {
   formatDate,
@@ -55,16 +55,28 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    const res = await commentApi.getByTask(taskId, { size: 100 });
+    setComments(res.data.data.items);
+  }, [taskId]);
+
+  const loadAttachments = useCallback(async () => {
+    try {
+      const res = await attachmentApi.getByEntity("tasks", taskId);
+      setAttachments(res.data.data ?? []);
+    } catch {
+      setAttachments([]);
+    }
+  }, [taskId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [taskRes, commentsRes, attachmentsRes, activitiesRes] = await Promise.all([
         taskApi.getTaskDetail(taskId),
-        commentApi.getByTask(taskId),
+        commentApi.getByTask(taskId, { size: 100 }),
         attachmentApi.getByEntity("tasks", taskId).catch(() => ({ data: { data: [] as Attachment[] } })),
         activityApi.getByEntity("TASK", taskId).catch(() => ({
           data: { data: { items: [] as ActivityLog[] } },
@@ -91,26 +103,12 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
     try {
       const res = await taskApi.updateStatus(taskId, status);
       setTask(res.data.data);
+      const actRes = await activityApi.getByEntity("TASK", taskId).catch(() => null);
+      if (actRes) setActivities(actRes.data.data.items ?? []);
     } catch (e) {
       console.error(e);
     } finally {
       setUpdatingStatus(false);
-    }
-  };
-
-  const handleSubmitComment = async () => {
-    const text = commentText.trim();
-    if (!text) return;
-    setSubmittingComment(true);
-    try {
-      await commentApi.create(taskId, text);
-      setCommentText("");
-      const res = await commentApi.getByTask(taskId);
-      setComments(res.data.data.items);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSubmittingComment(false);
     }
   };
 
@@ -144,7 +142,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
           Quay lại
         </Link>
         <Link
-          href={`/projects`}
+          href={`/projects/${task.projectId}`}
           className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
         >
           <FolderKanban size={14} />
@@ -177,7 +175,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
               </p>
             </section>
 
-            {task.labels && task.labels.length > 0 && (
+            {task.labels && task.labels.length > 0 ? (
               <section className="mb-6 flex flex-wrap gap-2">
                 {task.labels.map((label) => (
                   <span
@@ -189,7 +187,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
                   </span>
                 ))}
               </section>
-            )}
+            ) : null}
 
             <section>
               <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -210,58 +208,11 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
             </section>
           </article>
 
-          <article className="rounded-2xl border border-slate-100 bg-white shadow-sm">
-            <section className="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
-              <MessageSquare size={18} className="text-blue-600" />
-              <h2 className="font-bold text-slate-900">Bình luận ({comments.length})</h2>
-            </section>
-
-            <section className="space-y-4 p-6">
-              {comments.length === 0 ? (
-                <p className="text-center text-sm text-slate-400">Chưa có bình luận</p>
-              ) : (
-                comments.map((c) => (
-                  <section key={c.commentId} className="flex gap-3">
-                    <Avatar name={c.author?.userName ?? "?"} src={c.author?.avatarUrl} size="md" />
-                    <section className="min-w-0 flex-1 rounded-xl bg-slate-50 px-4 py-3">
-                      <section className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-900">
-                          {c.author?.userName ?? "Người dùng"}
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          {formatRelativeTime(c.createdAt)}
-                        </span>
-                        {c.isEdited && (
-                          <span className="text-xs text-slate-400">(đã sửa)</span>
-                        )}
-                      </section>
-                      <p className="text-sm text-slate-700">{c.content}</p>
-                      {c.replyCount > 0 && (
-                        <p className="mt-2 text-xs text-blue-600">{c.replyCount} phản hồi</p>
-                      )}
-                    </section>
-                  </section>
-                ))
-              )}
-
-              <section className="flex gap-3 border-t border-slate-100 pt-4">
-                <textarea
-                  className="min-h-[80px] flex-1 resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Viết bình luận..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  maxLength={1000}
-                />
-                <Button
-                  className="h-auto self-end rounded-xl bg-blue-600 px-4 hover:bg-blue-700"
-                  disabled={submittingComment || !commentText.trim()}
-                  onClick={handleSubmitComment}
-                >
-                  <Send size={16} />
-                </Button>
-              </section>
-            </section>
-          </article>
+          <TaskCommentsSection
+            taskId={taskId}
+            comments={comments}
+            onCommentsChange={loadComments}
+          />
         </section>
 
         <section className="space-y-6">
@@ -277,7 +228,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
                   task.assignee ? (
                     <section className="flex items-center gap-2">
                       <Avatar
-                        name={task.assignee.userName}
+                        name={task.assignee.userName ?? "?"}
                         src={task.assignee.avatarUrl}
                         size="sm"
                       />
@@ -311,28 +262,11 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
             </dl>
           </article>
 
-          {attachments.length > 0 && (
-            <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <section className="mb-3 flex items-center gap-2">
-                <Paperclip size={16} className="text-slate-500" />
-                <h2 className="text-sm font-bold text-slate-900">Tệp đính kèm</h2>
-              </section>
-              <ul className="space-y-2">
-                {attachments.map((a) => (
-                  <li key={a.attachmentId}>
-                    <a
-                      href={a.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      {a.fileName}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          )}
+          <TaskAttachmentsPanel
+            taskId={taskId}
+            attachments={attachments}
+            onChange={loadAttachments}
+          />
 
           <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-slate-900">Hoạt động gần đây</h2>
@@ -340,18 +274,21 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
               <p className="text-sm text-slate-400">Chưa có hoạt động</p>
             ) : (
               <ul className="space-y-3">
-                {activities.slice(0, 8).map((a) => (
-                  <li key={a.activityLogId} className="flex gap-2 text-sm">
-                    <Avatar name={a.userName} src={a.avatarUrl} size="sm" />
-                    <section>
-                      <p className="text-slate-700">
-                        <span className="font-medium text-slate-900">{a.userName}</span>{" "}
-                        {a.action}
-                      </p>
-                      <p className="text-xs text-slate-400">{formatRelativeTime(a.createdAt)}</p>
-                    </section>
-                  </li>
-                ))}
+                {activities.slice(0, 10).map((a) => {
+                  const p = presentActivity(a);
+                  return (
+                    <li key={a.activityLogId} className="flex gap-2 text-sm">
+                      <Avatar name={a.userName} src={a.avatarUrl} size="sm" />
+                      <section>
+                        <p className="text-slate-700">
+                          <span className="font-medium text-slate-900">{a.userName}</span>{" "}
+                          {p.verb} {p.targetLabel}
+                        </p>
+                        <p className="text-xs text-slate-400">{formatRelativeTime(a.createdAt)}</p>
+                      </section>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </article>

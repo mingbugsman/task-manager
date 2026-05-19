@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 @Table(
         name = "reactions",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_user_reaction",
-                columnNames = {"user_id", "entity_type", "entity_id", "reaction_type"}
+                name = "uk_user_entity_reaction",
+                columnNames = {"user_id", "entity_type", "entity_id"}
         )
 )
 @Getter
@@ -39,7 +39,7 @@ public class Reaction {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reaction_type", nullable = false, length = 20)
-    private ReactionType reactionType; // LIKE, HEART, SMILE, FIRE
+    private ReactionType reactionType;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

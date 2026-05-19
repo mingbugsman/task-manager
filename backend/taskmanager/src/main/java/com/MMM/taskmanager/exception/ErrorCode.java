@@ -94,6 +94,12 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_NOTIFICATION_NOT_FOUND", "Notification not found."),
     NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_NOTIFICATION_ACCESS_DENIED", "You do not have access to this notification."),
 
+    // ----------- CONTACT / MAIL --------------------
+    MAIL_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "ERR_MAIL_NOT_CONFIGURED",
+            "Hệ thống chưa cấu hình gửi email (thiếu MAIL_PASSWORD). Vui lòng gửi trực tiếp tới support.taskmanager.hcmunre@gmail.com."),
+    EMAIL_SEND_FAILED(HttpStatus.BAD_GATEWAY, "ERR_EMAIL_SEND_FAILED",
+            "Không gửi được email lúc này. Vui lòng thử lại sau hoặc gửi thư trực tiếp tới hòm hỗ trợ."),
+
     // ----------- ACTIVITY LOG ERROR --------------------
     ACTIVITY_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_ACTIVITY_LOG_NOT_FOUND", "Activity log not found."),
     ACTIVITY_LOG_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_ACTIVITY_LOG_ACCESS_DENIED", "You do not have access to this activity log.");

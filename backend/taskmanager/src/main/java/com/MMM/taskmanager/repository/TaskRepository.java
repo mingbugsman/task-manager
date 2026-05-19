@@ -80,6 +80,19 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             """)
     List<Task> findMyTasks(@Param("userId") Long userId);
 
+    @Query("""
+            SELECT t FROM Task t
+            JOIN FETCH t.project p
+            WHERE t.deletedAt IS NULL
+            AND t.assignee.userId = :userId
+            AND p.projectId IN (
+                SELECT pm.project.projectId FROM ProjectMember pm
+                WHERE pm.user.userId = :userId
+            )
+            ORDER BY t.createdAt DESC
+            """)
+    List<Task> findAllActiveAssignedToUserInMemberProjects(@Param("userId") Long userId);
+
     // Statistic theo project
     @Query("""
             SELECT COUNT(t) FROM Task t
@@ -120,4 +133,32 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             WHERE t.project.projectId = :projectId AND t.deletedAt IS NULL
             """)
     void softDeleteByProjectId(@Param("projectId") Long projectId, @Param("now") LocalDateTime now);
+
+    @Query("""
+            SELECT COUNT(t) FROM Task t
+            WHERE t.deletedAt IS NULL
+            AND LOWER(t.status) <> 'done'
+            AND t.assignee IS NOT NULL
+            AND t.assignee.userId <> :currentUserId
+            AND t.project.projectId IN (
+                SELECT pm.project.projectId FROM ProjectMember pm
+                WHERE pm.user.userId = :currentUserId
+            )
+            """)
+    long countActiveTasksAssignedToOthersInMyProjects(@Param("currentUserId") Long currentUserId);
+
+    @Query("""
+            SELECT t.assignee.userId, COUNT(t) FROM Task t
+            WHERE t.deletedAt IS NULL
+            AND LOWER(t.status) <> 'done'
+            AND t.assignee.userId IN :assigneeIds
+            AND t.project.projectId IN (
+                SELECT pm.project.projectId FROM ProjectMember pm
+                WHERE pm.user.userId = :currentUserId
+            )
+            GROUP BY t.assignee.userId
+            """)
+    List<Object[]> countActiveTasksByAssigneesInMyProjects(
+            @Param("currentUserId") Long currentUserId,
+            @Param("assigneeIds") List<Long> assigneeIds);
 }

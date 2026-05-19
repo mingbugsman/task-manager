@@ -20,4 +20,7 @@ export const commentApi = {
 
   delete: (commentId: number) =>
     axiosClient.delete<ApiResponse<void>>(`${BASE}/comments/${commentId}`),
+
+  getReplies: (commentId: number) =>
+    axiosClient.get<ApiResponse<Comment[]>>(`${BASE}/comments/${commentId}/replies`),
 };

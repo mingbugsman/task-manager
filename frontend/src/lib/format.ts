@@ -30,6 +30,13 @@ export function formatDate(dateStr?: string): string {
   });
 }
 
+export function formatFileSize(bytes?: number): string {
+  if (bytes == null || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();

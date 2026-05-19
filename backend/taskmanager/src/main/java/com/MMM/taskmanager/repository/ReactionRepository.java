@@ -2,6 +2,7 @@ package com.MMM.taskmanager.repository;
 
 import com.MMM.taskmanager.entity.Reaction;
 import com.MMM.taskmanager.entity.type.ReactionEntityType;
+import com.MMM.taskmanager.entity.type.ReactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,14 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
     List<Reaction> findByEntityTypeAndEntityId(ReactionEntityType entityType, Long entityId);
 
-    Optional<Reaction> findByEntityTypeAndEntityIdAndUser_UserId(ReactionEntityType entityType, Long entityId, Long userId);
+    Optional<Reaction> findByEntityTypeAndEntityIdAndUser_UserId(
+            ReactionEntityType entityType, Long entityId, Long userId);
+
+    Optional<Reaction> findByEntityTypeAndEntityIdAndUser_UserIdAndReactionType(
+            ReactionEntityType entityType,
+            Long entityId,
+            Long userId,
+            ReactionType reactionType);
 
     void deleteByEntityTypeAndEntityIdAndUser_UserId(
             ReactionEntityType entityType, Long entityId, Long userId);
