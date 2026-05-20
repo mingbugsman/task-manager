@@ -8,18 +8,24 @@ import {
   Calendar,
   Clock,
   FolderKanban,
+  Pencil,
   User,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useAuthReady } from "@/src/hooks/useAuthReady";
 import { useCurrentUser } from "@/src/hooks/useCurrentUser";
 import { projectMemberApi } from "@/src/features/projects/api/project-member.api";
-import { canEditTaskItem } from "@/src/features/projects/lib/project-permissions";
+import {
+  canEditTaskItem,
+  normalizeProjectRole,
+} from "@/src/features/projects/lib/project-permissions";
 import { taskApi } from "@/src/features/tasks/api/task.api";
 import { commentApi } from "@/src/features/comments/api/comment.api";
 import { attachmentApi } from "@/src/features/attachments/api/attachment.api";
 import { activityApi } from "@/src/features/activity/api/activity.api";
+import { EditTaskModal } from "@/src/features/projects/components/EditTaskModal";
 import { TaskLabelChips } from "@/src/features/projects/components/kanban/TaskLabelChips";
+import type { ProjectMember } from "@/src/types/api.types";
 import { TaskAttachmentsPanel } from "./TaskAttachmentsPanel";
 import { TaskCommentsSection } from "./TaskCommentsSection";
 import { Avatar } from "@/components/ui/avatar";
@@ -59,6 +65,8 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
   const { user: currentUser } = useCurrentUser();
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [myProjectRole, setMyProjectRole] = useState<string | null>(null);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
@@ -94,15 +102,22 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
       setTask(taskData);
       setComments(commentsRes.data.data.items);
 
-      if (taskData?.projectId && currentUser?.userId != null) {
+      if (taskData?.projectId) {
         try {
           const membersRes = await projectMemberApi.getMembers(taskData.projectId);
-          const me = membersRes.data.data.items.find(
-            (m) => String(m.user?.userId ?? m.userId) === String(currentUser.userId)
-          );
-          setMyProjectRole(me?.role ?? null);
+          const memberItems = membersRes.data.data?.items ?? [];
+          setProjectMembers(memberItems);
+          if (currentUser?.userId != null) {
+            const me = memberItems.find(
+              (m) => String(m.user?.userId ?? m.userId) === String(currentUser.userId)
+            );
+            setMyProjectRole(me?.role ?? null);
+          } else {
+            setMyProjectRole(null);
+          }
         } catch {
           setMyProjectRole(null);
+          setProjectMembers([]);
         }
       }
       setAttachments(attachmentsRes.data.data ?? []);
@@ -112,7 +127,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [taskId, currentUser?.userId]);
+  }, [taskId, currentUser?.userId, session?.isAdmin]);
 
   useEffect(() => {
     if (isReady) load();
@@ -122,9 +137,14 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
     task != null &&
     canEditTaskItem(myProjectRole, {
       isSystemAdmin: session?.isAdmin,
-      taskAssigneeId: task.assignee?.userId,
+      taskAssigneeId: task?.assignee?.userId,
       currentUserId: currentUser?.userId,
     });
+
+  const canChangeAssignee =
+    Boolean(session?.isAdmin) ||
+    normalizeProjectRole(myProjectRole) === "OWNER" ||
+    normalizeProjectRole(myProjectRole) === "LEAD";
 
   const handleStatusChange = async (status: string) => {
     if (!canModifyTask) return;
@@ -188,11 +208,23 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
                 <h1 className="text-2xl font-bold text-slate-900">{task.taskName}</h1>
                 <p className="mt-1 text-sm text-slate-500">#{task.taskId}</p>
               </section>
-              <section className="flex flex-wrap gap-2">
+              <section className="flex flex-wrap items-center gap-2">
                 <Badge variant={priorityVariant(task.priority)}>
                   {formatPriority(task.priority)}
                 </Badge>
                 <Badge variant={statusVariant(task.status)}>{formatStatus(task.status)}</Badge>
+                {canModifyTask ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="ml-1 gap-1 rounded-lg border-slate-200"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    <Pencil size={14} />
+                    Sửa tác vụ
+                  </Button>
+                ) : null}
               </section>
             </section>
 
@@ -322,6 +354,19 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
           </article>
         </section>
       </section>
+
+      {canModifyTask ? (
+        <EditTaskModal
+          open={editOpen}
+          taskId={taskId}
+          projectName={task.projectName}
+          members={projectMembers}
+          allowAssigneeChange={canChangeAssignee}
+          isAdminContext={Boolean(session?.isAdmin)}
+          onClose={() => setEditOpen(false)}
+          onUpdated={load}
+        />
+      ) : null}
     </section>
   );
 }

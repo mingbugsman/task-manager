@@ -8,8 +8,10 @@ import { z } from "zod";
 import { authApi } from "../api/auth.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiErrorMessage } from "@/src/lib/api-error";
 
 
 const forgotPasswordSchema = z.object({
@@ -19,6 +21,7 @@ const forgotPasswordSchema = z.object({
 export default function ForgotPasswordForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof forgotPasswordSchema>>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -39,7 +42,8 @@ export default function ForgotPasswordForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang gửi mã OTP..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Quên mật khẩu?</CardTitle>
         <CardDescription className="text-center">Nhập email của bạn để nhận mã OTP đặt lại mật khẩu</CardDescription>
@@ -60,6 +64,11 @@ export default function ForgotPasswordForm() {
                 </FormItem>
               )}
             />
+            {apiError && (
+              <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-600">
+                {apiError}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Đang gửi..." : "Gửi mã xác nhận"}
             </Button>

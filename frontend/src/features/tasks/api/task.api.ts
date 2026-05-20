@@ -54,6 +54,7 @@ export const taskApi = {
       priority: number;
       status: string;
       assigneeId?: number;
+      clearAssignee?: boolean;
       dueAt?: string | null;
       labelIds?: number[];
     }

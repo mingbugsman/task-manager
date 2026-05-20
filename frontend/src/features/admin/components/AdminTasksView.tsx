@@ -8,7 +8,6 @@ import { AppHeader } from "@/src/components/layout/AppHeader";
 import { ListPagination } from "@/src/components/ListPagination";
 import { DeleteConfirmDialog } from "@/src/components/DeleteConfirmDialog";
 import { useDeleteConfirm } from "@/src/hooks/useDeleteConfirm";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { projectApi } from "@/src/features/projects/api/project.api";
 import { projectMemberApi } from "@/src/features/projects/api/project-member.api";
@@ -17,7 +16,8 @@ import { CreateTaskModal } from "@/src/features/projects/components/CreateTaskMo
 import { EditTaskModal } from "@/src/features/projects/components/EditTaskModal";
 import { ADMIN_PAGE_SIZE } from "@/src/features/admin/lib/constants";
 import { useDebouncedValue } from "@/src/features/admin/hooks/useDebouncedValue";
-import { STATUS_LABELS, PRIORITY_LABELS } from "@/src/lib/constants";
+import { getApiErrorMessage } from "@/src/lib/api-error";
+import { PRIORITY_LABELS, TASK_STATUS_OPTIONS } from "@/src/lib/constants";
 import type { PageResponse, ProjectMember, ProjectSummary, TaskSummary } from "@/src/types/api.types";
 
 export function AdminTasksView() {
@@ -33,6 +33,8 @@ export function AdminTasksView() {
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTaskId, setEditTaskId] = useState<number | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -79,6 +81,19 @@ export function AdminTasksView() {
   const selectedProject = projects.find((p) => p.projectId === projectId);
   const items = data?.items ?? [];
 
+  const handleStatusChange = async (taskId: number, status: string) => {
+    setActionError(null);
+    setStatusUpdatingId(taskId);
+    try {
+      await taskApi.updateStatus(taskId, status);
+      await loadTasks();
+    } catch (err) {
+      setActionError(getApiErrorMessage(err, "Không cập nhật được trạng thái."));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
   return (
     <section>
       <AppHeader
@@ -114,6 +129,12 @@ export function AdminTasksView() {
           </Button>
         ) : null}
       </section>
+
+      {actionError ? (
+        <article className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {actionError}
+        </article>
+      ) : null}
 
       <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <table className="w-full text-sm">
@@ -157,7 +178,19 @@ export function AdminTasksView() {
                     </Link>
                   </td>
                   <td className="px-4 py-4">
-                    <Badge variant="outline">{STATUS_LABELS[t.status] ?? t.status}</Badge>
+                    <select
+                      className="h-9 min-w-[8.5rem] rounded-lg border border-slate-200 bg-white px-2 text-sm disabled:opacity-60"
+                      value={t.status}
+                      disabled={statusUpdatingId === t.taskId}
+                      onChange={(e) => handleStatusChange(t.taskId, e.target.value)}
+                      aria-label={`Trạng thái: ${t.taskName}`}
+                    >
+                      {TASK_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-4">{PRIORITY_LABELS[t.priority] ?? t.priority}</td>
                   <td className="px-4 py-4 text-slate-600">
@@ -168,11 +201,12 @@ export function AdminTasksView() {
                       <Button
                         type="button"
                         size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
+                        variant="outline"
+                        className="h-8 gap-1 rounded-lg border-slate-200 px-2.5 text-xs font-semibold"
                         onClick={() => setEditTaskId(t.taskId)}
                       >
-                        <Pencil size={16} />
+                        <Pencil size={14} />
+                        Sửa
                       </Button>
                       <Button
                         type="button"
@@ -227,6 +261,8 @@ export function AdminTasksView() {
             taskId={editTaskId}
             projectName={selectedProject?.projectName}
             members={members}
+            allowAssigneeChange
+            isAdminContext
             onClose={() => setEditTaskId(null)}
             onUpdated={loadTasks}
           />

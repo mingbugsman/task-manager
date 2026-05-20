@@ -144,20 +144,14 @@ public class TaskServiceImpl implements TaskService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
 
+        checkProjectMemberOrAdmin(projectId, reporterId);
+
         User reporter = userRepository.findById(reporterId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         User assignee = null;
         if (request.getAssigneeId() != null) {
-            // Kiểm tra assignee phải là member của project
-            assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-            boolean isAssigneeMember = projectMemberRepository
-                    .existsByProject_ProjectIdAndUser_UserId(projectId, request.getAssigneeId());
-            if (!isAssigneeMember) {
-                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-            }
+            assignee = resolveAssigneeForProject(projectId, request.getAssigneeId());
         }
 
         Set<Label> labels = new HashSet<>();
@@ -214,20 +208,7 @@ public class TaskServiceImpl implements TaskService {
         User updatedBy = userRepository.findById(updatedByUserId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (request.getAssigneeId() != null) {
-            assertCanChangeAssignee(task, updatedByUserId, request.getAssigneeId());
-            //  Kiểm tra assignee phải là member của project
-            boolean isAssigneeMember = projectMemberRepository
-                    .existsByProject_ProjectIdAndUser_UserId(
-                            task.getProject().getProjectId(), request.getAssigneeId());
-            if (!isAssigneeMember) {
-                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-            }
-
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            task.setAssignee(assignee);
-        }
+        applyAssigneeUpdate(task, request, updatedByUserId);
 
         if (request.getLabelIds() != null) {
             Set<Label> labels = new HashSet<>(labelRepository.findAllById(request.getLabelIds()));
@@ -270,17 +251,10 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
-        // Kiểm tra assignee phải là member của project
-        boolean isAssigneeMember = projectMemberRepository
-                .existsByProject_ProjectIdAndUser_UserId(
-                        task.getProject().getProjectId(), assigneeUserId);
-        if (!isAssigneeMember) {
-            throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-        }
-
-        User assignee = userRepository.findById(assigneeUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        Long userId = SecurityUtils.getCurrentUserId();
+        assertCanChangeAssignee(task, userId, assigneeUserId);
+        User assignee = resolveAssigneeForProject(
+                task.getProject().getProjectId(), assigneeUserId);
         task.setAssignee(assignee);
         log.info("Assigned task id={} to userId={}", taskId, assigneeUserId);
         return taskMapper.toDetailResponse(taskRepository.save(task));
@@ -438,6 +412,40 @@ public class TaskServiceImpl implements TaskService {
     /**
      * OWNER/LEAD: sửa mọi task. MEMBER: chỉ task được giao cho mình. VIEWER: không sửa.
      */
+    private void applyAssigneeUpdate(Task task, TaskUpdateRequest request, Long updatedByUserId) {
+        if (Boolean.TRUE.equals(request.getClearAssignee())) {
+            assertCanChangeAssignee(task, updatedByUserId, null);
+            task.setAssignee(null);
+            return;
+        }
+
+        if (request.getAssigneeId() == null) {
+            return;
+        }
+
+        assertCanChangeAssignee(task, updatedByUserId, request.getAssigneeId());
+        User assignee = resolveAssigneeForProject(
+                task.getProject().getProjectId(), request.getAssigneeId());
+        task.setAssignee(assignee);
+    }
+
+    /**
+     * Gán assignee: admin hệ thống chỉ cần user tồn tại; user khác phải là member dự án.
+     */
+    private User resolveAssigneeForProject(Long projectId, Long assigneeUserId) {
+        User assignee = userRepository.findById(assigneeUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (!SecurityUtils.isAdmin()) {
+            boolean isAssigneeMember = projectMemberRepository
+                    .existsByProject_ProjectIdAndUser_UserId(projectId, assigneeUserId);
+            if (!isAssigneeMember) {
+                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
+            }
+        }
+        return assignee;
+    }
+
     private void checkCanModifyTask(Task task, Long userId) {
         if (SecurityUtils.isAdmin()) {
             return;

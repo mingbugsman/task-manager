@@ -14,13 +14,24 @@ interface EditTaskModalProps {
   taskId: number | null;
   projectName?: string;
   members: ProjectMember[];
-  /** OWNER/LEAD — thành viên không được đổi người được giao. */
+  /** OWNER/LEAD hoặc admin hệ thống — thành viên thường không đổi được người giao. */
   allowAssigneeChange?: boolean;
+  /** Hiển thị gợi ý quyền quản trị (trang admin). */
+  isAdminContext?: boolean;
   onClose: () => void;
   onUpdated: () => void;
 }
 
 const PRIORITIES = [1, 2, 3] as const;
+
+function memberUserIds(members: ProjectMember[]): Set<string> {
+  const ids = new Set<string>();
+  for (const m of members) {
+    const id = m.user?.userId ?? m.userId;
+    if (id != null) ids.add(String(id));
+  }
+  return ids;
+}
 
 function toDatetimeLocalValue(iso?: string | null): string {
   if (!iso) return "";
@@ -36,6 +47,7 @@ export function EditTaskModal({
   projectName,
   members,
   allowAssigneeChange = true,
+  isAdminContext = false,
   onClose,
   onUpdated,
 }: EditTaskModalProps) {
@@ -65,7 +77,10 @@ export function EditTaskModal({
         setTaskDescription(task.taskDescription ?? "");
         setPriority(task.priority ?? 2);
         setStatus(task.status ?? "Todo");
-        setAssigneeId(task.assignee?.userId != null ? String(task.assignee.userId) : "");
+        const aid = task.assignee?.userId;
+        const validMember = aid != null && memberUserIds(members).has(String(aid));
+        const keepOrphan = isAdminContext && aid != null && !validMember;
+        setAssigneeId(validMember || keepOrphan ? String(aid) : "");
         setDueAt(toDatetimeLocalValue(task.dueAt));
       })
       .catch((err) => {
@@ -80,7 +95,7 @@ export function EditTaskModal({
     return () => {
       cancelled = true;
     };
-  }, [open, taskId]);
+  }, [open, taskId, members, isAdminContext]);
 
   if (!open || taskId == null) return null;
 
@@ -107,9 +122,18 @@ export function EditTaskModal({
         labelIds,
       };
       if (allowAssigneeChange) {
-        payload.assigneeId = assigneeId ? Number(assigneeId) : undefined;
+        if (assigneeId) {
+          payload.assigneeId = Number(assigneeId);
+        } else {
+          payload.clearAssignee = true;
+        }
       } else if (current.assignee?.userId != null) {
-        payload.assigneeId = Number(current.assignee.userId);
+        const cid = String(current.assignee.userId);
+        if (memberUserIds(members).has(cid)) {
+          payload.assigneeId = Number(current.assignee.userId);
+        } else {
+          payload.clearAssignee = true;
+        }
       }
 
       await taskApi.updateTask(taskId, payload);
@@ -143,6 +167,9 @@ export function EditTaskModal({
                 <h2 className="text-lg font-bold">Sửa tác vụ</h2>
                 {projectName ? (
                   <p className="mt-0.5 text-sm text-blue-100">Dự án: {projectName}</p>
+                ) : null}
+                {isAdminContext ? (
+                  <p className="mt-1 text-xs text-blue-100/90">Quản trị viên — chỉnh sửa đầy đủ</p>
                 ) : null}
               </section>
             </section>
@@ -271,6 +298,13 @@ export function EditTaskModal({
                       </option>
                     );
                   })}
+                  {isAdminContext &&
+                  assigneeId &&
+                  !memberUserIds(members).has(assigneeId) ? (
+                    <option value={assigneeId}>
+                      Người được giao hiện tại (ID {assigneeId})
+                    </option>
+                  ) : null}
                 </select>
               </section>
             </section>

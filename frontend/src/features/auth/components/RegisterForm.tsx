@@ -10,6 +10,8 @@ import { authApi } from "../api/auth.api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
@@ -65,7 +67,8 @@ export default function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang đăng ký tài khoản..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Tạo tài khoản</CardTitle>
         <CardDescription className="text-center">
@@ -119,11 +122,10 @@ export default function RegisterForm() {
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Tối thiểu 6 ký tự" 
+                    <PasswordInput
+                      placeholder="Tối thiểu 6 ký tự"
                       disabled={isLoading}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

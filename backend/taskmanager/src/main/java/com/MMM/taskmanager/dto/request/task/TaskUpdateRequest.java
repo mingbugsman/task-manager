@@ -34,6 +34,9 @@ public class TaskUpdateRequest implements Serializable {
 
     private Long assigneeId;
 
+    /** true = bỏ người được giao (assignee = null). */
+    private Boolean clearAssignee;
+
     private Long reporterId;
 
     private LocalDateTime dueAt;

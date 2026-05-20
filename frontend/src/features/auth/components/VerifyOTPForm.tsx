@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 
@@ -47,7 +48,8 @@ export default function VerifyOtpForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang xác thực mã OTP..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Xác thực Email</CardTitle>
         <CardDescription className="text-center">
