@@ -31,14 +31,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String token = parseJwt(request);
-            if (token == null && request.getRequestURI().contains("/notifications/subscribe")) {
+            String jwt = parseJwt(request);
+            if (jwt == null && request.getRequestURI().contains("/notifications/subscribe")) {
                 String queryToken = request.getParameter("token");
                 if (StringUtils.hasText(queryToken)) {
-                    token = queryToken;
+                    jwt = queryToken;
                 }
             }
-            String jwt = parseJwt(request);
 
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);

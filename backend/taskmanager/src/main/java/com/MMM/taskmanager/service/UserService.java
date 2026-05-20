@@ -8,7 +8,7 @@ import com.MMM.taskmanager.dto.response.user.UserResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
 
 public interface UserService {
-    PageResponse<UserResponse> getUsers(int page, int size, String sortBy);
+    PageResponse<UserResponse> getUsers(int page, int size, String sortBy, String search);
     UserDetailResponse getUser(Long userId);
     UserDetailResponse getMe();
     void updateMe(UserUpdateRequest request);

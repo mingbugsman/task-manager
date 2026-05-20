@@ -13,6 +13,7 @@ public interface ActivityLogService {
     PageResponse<ActivityLogResponse> getActivitiesByProject(Long projectId, int page, int size);
     PageResponse<ActivityLogResponse> getActivitiesByUser(Long userId, int page, int size);
     PageResponse<ActivityLogResponse> getMyActivities(int page, int size);
+    PageResponse<ActivityLogResponse> getAllActivitiesForAdmin(int page, int size, String search);
     void createActivityLog(ActivityLogRequest request);
     int deleteOldActivity(LocalDateTime before);
 }

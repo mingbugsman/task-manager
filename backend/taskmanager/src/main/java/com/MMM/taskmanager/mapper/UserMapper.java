@@ -28,8 +28,9 @@ public interface UserMapper {
     void updateUserFromDTO(UserForAdminRequest request, @MappingTarget User user);
 
     UserSummaryResponse toUserSummary(User user);
-    @Mapping(target = "userId",    source = "user.userId")
-    @Mapping(target = "userName",  source = "user.userName")
+    @Mapping(target = "userId", source = "user.userId")
+    @Mapping(target = "userName", source = "user.userName")
+    @Mapping(target = "email", source = "user.email")
     @Mapping(target = "avatarUrl", source = "user.avatarUrl")
     UserSummaryResponse toUserSummaryDTO(ProjectMember member);
 

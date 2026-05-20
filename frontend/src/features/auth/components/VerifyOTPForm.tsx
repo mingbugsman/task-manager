@@ -10,13 +10,15 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 
 export default function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const emailFromUrl = searchParams.get("email") || ""; 
+  const emailFromUrl = searchParams.get("email") || "";
+  const returnUrl = searchParams.get("returnUrl")?.trim() ?? "";
 
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -35,7 +37,9 @@ export default function VerifyOtpForm() {
     try {
       await authApi.verifyOtp(values);
       // Xác thực thành công, đẩy về trang đăng nhập
-      router.push("/login?verified=true");
+      const loginQuery = new URLSearchParams({ verified: "true" });
+      if (returnUrl) loginQuery.set("returnUrl", returnUrl);
+      router.push(`/login?${loginQuery.toString()}`);
     } catch (error: any) {
       setApiError(error.response?.data?.message || "Mã OTP không hợp lệ!");
     } finally {
@@ -44,7 +48,8 @@ export default function VerifyOtpForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang xác thực mã OTP..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Xác thực Email</CardTitle>
         <CardDescription className="text-center">

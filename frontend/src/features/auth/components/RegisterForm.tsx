@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link"; // Bổ sung import Link từ Next.js
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,8 @@ import { authApi } from "../api/auth.api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
@@ -23,6 +25,9 @@ import {
 
 export default function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailFromUrl = searchParams.get("email")?.trim() ?? "";
+  const returnUrl = searchParams.get("returnUrl")?.trim() ?? "";
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -30,10 +35,16 @@ export default function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       userName: "",
-      email: "",
+      email: emailFromUrl,
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (emailFromUrl) {
+      form.setValue("email", emailFromUrl);
+    }
+  }, [emailFromUrl, form]);
 
   const onSubmit = async (values: RegisterFormValues) => {
     setIsLoading(true);
@@ -41,7 +52,9 @@ export default function RegisterForm() {
     
     try {
       await authApi.register(values);
-      router.push(`/verify-otp?email=${encodeURIComponent(values.email)}`);
+      const verifyQuery = new URLSearchParams({ email: values.email });
+      if (returnUrl) verifyQuery.set("returnUrl", returnUrl);
+      router.push(`/verify-otp?${verifyQuery.toString()}`);
       
     } catch (error: any) {
       console.log("error: " + error.response);
@@ -54,7 +67,8 @@ export default function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang đăng ký tài khoản..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Tạo tài khoản</CardTitle>
         <CardDescription className="text-center">
@@ -108,11 +122,10 @@ export default function RegisterForm() {
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="Tối thiểu 6 ký tự" 
+                    <PasswordInput
+                      placeholder="Tối thiểu 6 ký tự"
                       disabled={isLoading}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -138,7 +151,11 @@ export default function RegisterForm() {
         <div className="text-sm text-center text-muted-foreground">
           Đã có tài khoản?{" "}
           <Link 
-            href="/login" 
+            href={
+              returnUrl
+                ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+                : "/login"
+            }
             className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
             Đăng nhập ngay

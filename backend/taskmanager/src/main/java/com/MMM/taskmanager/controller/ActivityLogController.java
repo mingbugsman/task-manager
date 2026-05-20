@@ -150,6 +150,24 @@ public class ActivityLogController {
     }
 
     // =========================================================
+    // GET /api/v1/admin/activities — Admin only
+    // =========================================================
+    @Operation(
+            summary = "Danh sách nhật ký hệ thống (Admin)",
+            description = "Xem toàn bộ activity log, hỗ trợ tìm kiếm theo hành động hoặc tên user"
+    )
+    @GetMapping("/admin/activities")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<ActivityLogResponse>>> getAllActivitiesForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+
+        var data = activityLogService.getAllActivitiesForAdmin(page, size, search);
+        return ResponseEntity.ok(ApiResponse.ok(data));
+    }
+
+    // =========================================================
     // DELETE /api/v1/admin/activities — Admin only
     // =========================================================
     @Operation(

@@ -3,6 +3,7 @@ package com.MMM.taskmanager.service;
 import com.MMM.taskmanager.dto.request.project.ProjectRequest;
 import com.MMM.taskmanager.dto.request.project.UpdateProjectStatusRequest;
 import com.MMM.taskmanager.dto.response.project.BoardResponse;
+import com.MMM.taskmanager.dto.response.project.ProjectAnalyticsResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectDetailResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectOverallStatsResponse;
 import com.MMM.taskmanager.dto.response.project.ProjectSummaryResponse;
@@ -16,6 +17,7 @@ public interface ProjectService {
     ProjectDetailResponse getProjectDetail(Long projectId);
     ProjectOverallStatsResponse getProjectStats();
     BoardResponse getBoardByProjectId(Long projectId, Long assigneeId, Long labelId);
+    ProjectAnalyticsResponse getAnalytics(Long projectId);
     PageResponse<ProjectSummaryResponse> getAllProjectsForAdmin(String search, boolean includeDeleted, int page, int size);
 
     // crud project

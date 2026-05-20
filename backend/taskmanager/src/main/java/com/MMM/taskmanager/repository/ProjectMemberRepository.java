@@ -119,4 +119,31 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
             GROUP BY pm.role
             """)
     java.util.List<Object[]> countMembersByRoleGrouped(@Param("projectId") Long projectId);
+
+    @Query("""
+            SELECT pm FROM ProjectMember pm
+            JOIN FETCH pm.user u
+            WHERE pm.project.projectId = :projectId
+            ORDER BY pm.joinedAt ASC
+            """)
+    List<ProjectMember> findAllByProjectId(@Param("projectId") Long projectId);
+
+    @Query("""
+            SELECT COUNT(DISTINCT pm.project.projectId)
+            FROM ProjectMember pm
+            WHERE pm.user.userId = :userId
+            """)
+    long countDistinctProjectsByUserId(@Param("userId") Long userId);
+
+    @Query("""
+            SELECT pm2.user.userId, pm2.user.userName, pm2.user.email, pm2.user.avatarUrl,
+                   p.projectId, p.projectName, pm2.role
+            FROM ProjectMember pm1
+            JOIN ProjectMember pm2 ON pm1.project.projectId = pm2.project.projectId
+            JOIN pm1.project p
+            WHERE pm1.user.userId = :currentUserId
+            AND pm2.user.userId <> :currentUserId
+            ORDER BY pm2.user.userName ASC, p.projectName ASC
+            """)
+    List<Object[]> findCollaboratorProjectRows(@Param("currentUserId") Long currentUserId);
 }

@@ -1,38 +1,23 @@
 import axios from "axios";
-import {getSession, signOut} from 'next-auth/react'
+import { signOut } from "next-auth/react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-
+/**
+ * API đã đăng nhập: đi qua Next.js proxy (/api/proxy/...).
+ * Server đọc session cookie và gắn Bearer token — tránh lỗi getSession() không có token.
+ */
 const axiosClient = axios.create({
-    baseURL: BASE_URL,
-    headers: {
-        'Content-Type': 'application/json'
-    }
+  baseURL: "/api/proxy",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
-
-axiosClient.interceptors.request.use(
-    async (config) => {
-
-        const session = await getSession();
-
-        if (session?.accessToken) {
-            config.headers.Authorization = `Bearer ${session.accessToken}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
 
 axiosClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const session = await getSession();
-    
-    if (session?.error === "RefreshAccessTokenError" || error.response?.status === 401) {
-
-      signOut({ callbackUrl: '/login' });
+    if (error.response?.status === 401) {
+      await signOut({ callbackUrl: "/login" });
     }
-    
     return Promise.reject(error);
   }
 );

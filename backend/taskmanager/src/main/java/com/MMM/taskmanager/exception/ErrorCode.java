@@ -52,6 +52,8 @@ public enum ErrorCode {
     PROJECT_MEMBER_ALREADY_EXISTS(HttpStatus.CONFLICT, "ERR_PROJECT_MEMBER_ALREADY_EXISTS", "User is already a member of this project."),
     PROJECT_MEMBER_INVALID_ROLE(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_INVALID_ROLE", "Invalid project member role."),
     PROJECT_MEMBER_CANNOT_REMOVE_OWNER(HttpStatus.BAD_REQUEST, "ERR_PROJECT_MEMBER_CANNOT_REMOVE_OWNER", "Cannot remove the project owner."),
+    PROJECT_INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_PROJECT_INVITE_LINK_NOT_FOUND", "Invite link not found."),
+    PROJECT_INVITE_LINK_EXPIRED(HttpStatus.BAD_REQUEST, "ERR_PROJECT_INVITE_LINK_EXPIRED", "Invite link has expired or been revoked."),
 
     // ----------- TASK ERROR --------------------
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_TASK_NOT_FOUND", "Task not found."),
@@ -93,6 +95,12 @@ public enum ErrorCode {
     // ----------- NOTIFICATION ERROR --------------------
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_NOTIFICATION_NOT_FOUND", "Notification not found."),
     NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN, "ERR_NOTIFICATION_ACCESS_DENIED", "You do not have access to this notification."),
+
+    // ----------- CONTACT / MAIL --------------------
+    MAIL_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "ERR_MAIL_NOT_CONFIGURED",
+            "Hệ thống chưa cấu hình gửi email (thiếu MAIL_PASSWORD). Vui lòng gửi trực tiếp tới support.taskmanager.hcmunre@gmail.com."),
+    EMAIL_SEND_FAILED(HttpStatus.BAD_GATEWAY, "ERR_EMAIL_SEND_FAILED",
+            "Không gửi được email lúc này. Vui lòng thử lại sau hoặc gửi thư trực tiếp tới hòm hỗ trợ."),
 
     // ----------- ACTIVITY LOG ERROR --------------------
     ACTIVITY_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "ERR_ACTIVITY_LOG_NOT_FOUND", "Activity log not found."),

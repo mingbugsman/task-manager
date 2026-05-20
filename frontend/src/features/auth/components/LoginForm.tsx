@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link"; // Bổ sung import Link
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { loginSchema, LoginFormValues } from "../schemas/auth.schema";
 
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormProcessingOverlay } from "@/components/ui/form-processing-overlay";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
@@ -23,7 +25,10 @@ import {
 } from "@/components/ui/Form"; 
 
 export default function LoginForm() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl")?.trim() ?? "";
+  const resetSuccess = searchParams.get("reset") === "success";
+  const verified = searchParams.get("verified") === "true";
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -49,14 +54,27 @@ export default function LoginForm() {
     if (result?.error) {
       setApiError(result.error);
       setIsLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+      return;
     }
+
+    // Đợi session cookie được ghi xong rồi mới chuyển trang
+    let session = await getSession();
+    for (let i = 0; i < 5 && !session?.accessToken; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+      session = await getSession();
+    }
+
+    const fallback = session?.isAdmin ? "/admin" : "/dashboard";
+    const target =
+      returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")
+        ? returnUrl
+        : fallback;
+    window.location.href = target;
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-sm">
+    <Card className="relative w-full max-w-md mx-auto shadow-sm overflow-hidden">
+      <FormProcessingOverlay show={isLoading} message="Đang đăng nhập..." />
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Đăng nhập</CardTitle>
         <CardDescription className="text-center">
@@ -64,6 +82,16 @@ export default function LoginForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {resetSuccess && (
+          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            Đổi mật khẩu thành công. Vui lòng đăng nhập lại.
+          </p>
+        )}
+        {verified && !resetSuccess && (
+          <p className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+            Xác thực email thành công. Bạn có thể đăng nhập.
+          </p>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" method="POST">
             <FormField
@@ -92,11 +120,10 @@ export default function LoginForm() {
                 <FormItem>
                   <FormLabel>Mật khẩu</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="password" 
-                      placeholder="******" 
+                    <PasswordInput
+                      placeholder="******"
                       disabled={isLoading}
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -123,7 +150,11 @@ export default function LoginForm() {
         <div className="text-sm text-center text-muted-foreground">
           Chưa có tài khoản?{" "}
           <Link 
-            href="/register" 
+            href={
+              returnUrl
+                ? `/register?returnUrl=${encodeURIComponent(returnUrl)}`
+                : "/register"
+            }
             className="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
           >
             Đăng ký ngay

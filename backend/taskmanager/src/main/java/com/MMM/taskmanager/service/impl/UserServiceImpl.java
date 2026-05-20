@@ -43,10 +43,11 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    @Cacheable(value = "users", key = "{#page, #size, #sortBy}")
-    public PageResponse<UserResponse> getUsers(int page, int size, String sortBy) {
+    @Cacheable(value = "users", key = "{#page, #size, #sortBy, #search}")
+    public PageResponse<UserResponse> getUsers(int page, int size, String sortBy, String search) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(sortBy).descending());
-        Page<User> userPage = userRepository.findAll(pageable);
+        String q = search != null && !search.isBlank() ? search.trim() : null;
+        Page<User> userPage = userRepository.findAllForAdmin(q, pageable);
 
         List<UserResponse> userDTOs = userPage.getContent().stream()
                 .map(userMapper::toResponse).toList();
@@ -57,6 +58,7 @@ public class UserServiceImpl implements UserService {
                 .totalPages(userPage.getTotalPages())
                 .totalElements(userPage.getTotalElements())
                 .hasNext(userPage.hasNext())
+                .hasPrevious(userPage.hasPrevious())
                 .items(userDTOs)
                 .build();
     }

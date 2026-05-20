@@ -33,7 +33,7 @@ public class TaskLabelServiceImpl implements TaskLabelService {
     })
     public TaskLabelResponse attachLabelToTask(Long taskId, TaskLabelRequest request) {
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
         Label label = labelRepository.findById(request.getLabelId())
                 .orElseThrow(() -> new AppException(ErrorCode.LABEL_NOT_FOUND));

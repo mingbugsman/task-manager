@@ -11,6 +11,9 @@ import com.MMM.taskmanager.exception.AppException;
 import com.MMM.taskmanager.exception.ErrorCode;
 import com.MMM.taskmanager.mapper.TaskMapper;
 import com.MMM.taskmanager.repository.*;
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
+import com.MMM.taskmanager.entity.type.ProjectRole;
+import com.MMM.taskmanager.service.ActivityLogRecorder;
 import com.MMM.taskmanager.service.TaskService;
 import com.MMM.taskmanager.util.SecurityUtils;
 import lombok.AccessLevel;
@@ -46,6 +49,7 @@ public class TaskServiceImpl implements TaskService {
     LabelRepository labelRepository;
     TaskMapper taskMapper;
     ProjectMemberRepository projectMemberRepository;
+    ActivityLogRecorder activityLogRecorder;
 
     // =========================================================
     // GET /tasks?projectId=...
@@ -129,25 +133,25 @@ public class TaskServiceImpl implements TaskService {
     // Assignee phải là member trong dự án
     // =========================================================
     @Override
-    @CacheEvict(value = "tasks", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "tasks", allEntries = true),
+            @CacheEvict(value = "project:board", allEntries = true),
+            @CacheEvict(value = "taskStatistic", key = "#projectId"),
+            @CacheEvict(value = "project:list", allEntries = true),
+            @CacheEvict(value = "myTasks", allEntries = true)
+    })
     public TaskDetailResponse createTask(Long projectId, TaskCreateRequest request, Long reporterId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new AppException(ErrorCode.PROJECT_NOT_FOUND));
+
+        checkProjectMemberOrAdmin(projectId, reporterId);
 
         User reporter = userRepository.findById(reporterId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         User assignee = null;
         if (request.getAssigneeId() != null) {
-            // Kiểm tra assignee phải là member của project
-            assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-            boolean isAssigneeMember = projectMemberRepository
-                    .existsByProject_ProjectIdAndUser_UserId(projectId, request.getAssigneeId());
-            if (!isAssigneeMember) {
-                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-            }
+            assignee = resolveAssigneeForProject(projectId, request.getAssigneeId());
         }
 
         Set<Label> labels = new HashSet<>();
@@ -169,6 +173,17 @@ public class TaskServiceImpl implements TaskService {
 
         Task saved = taskRepository.save(task);
         log.info("Created task id={} in projectId={} by reporterId={}", saved.getTaskId(), projectId, reporterId);
+        activityLogRecorder.record(
+                "CREATE",
+                ActivityLogEntityType.TASK,
+                saved.getTaskId(),
+                projectId,
+                ActivityLogRecorder.metadataJson(
+                        "taskId", String.valueOf(saved.getTaskId()),
+                        "taskName", saved.getTaskName(),
+                        "projectId", String.valueOf(projectId)
+                )
+        );
         return taskMapper.toDetailResponse(saved);
     }
 
@@ -178,28 +193,22 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
-            @CacheEvict(value = "tasks", allEntries = true)
+            @CacheEvict(value = "tasks", allEntries = true),
+            @CacheEvict(value = "project:board", allEntries = true),
+            @CacheEvict(value = "taskStatistic", key = "#result.projectId"),
+            @CacheEvict(value = "project:list", allEntries = true),
+            @CacheEvict(value = "myTasks", allEntries = true)
     })
     public TaskDetailResponse updateTask(Long taskId, TaskUpdateRequest request, Long updatedByUserId) {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
+        checkCanModifyTask(task, updatedByUserId);
+
         User updatedBy = userRepository.findById(updatedByUserId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (request.getAssigneeId() != null) {
-            //  Kiểm tra assignee phải là member của project
-            boolean isAssigneeMember = projectMemberRepository
-                    .existsByProject_ProjectIdAndUser_UserId(
-                            task.getProject().getProjectId(), request.getAssigneeId());
-            if (!isAssigneeMember) {
-                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-            }
-
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            task.setAssignee(assignee);
-        }
+        applyAssigneeUpdate(task, request, updatedByUserId);
 
         if (request.getLabelIds() != null) {
             Set<Label> labels = new HashSet<>(labelRepository.findAllById(request.getLabelIds()));
@@ -215,6 +224,17 @@ public class TaskServiceImpl implements TaskService {
 
         Task saved = taskRepository.save(task);
         log.info("Updated task id={} by userId={}", taskId, updatedByUserId);
+        activityLogRecorder.record(
+                "UPDATE",
+                ActivityLogEntityType.TASK,
+                saved.getTaskId(),
+                saved.getProject().getProjectId(),
+                ActivityLogRecorder.metadataJson(
+                        "taskId", String.valueOf(saved.getTaskId()),
+                        "taskName", saved.getTaskName(),
+                        "status", saved.getStatus()
+                )
+        );
         return taskMapper.toDetailResponse(saved);
     }
 
@@ -231,17 +251,10 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
-        // Kiểm tra assignee phải là member của project
-        boolean isAssigneeMember = projectMemberRepository
-                .existsByProject_ProjectIdAndUser_UserId(
-                        task.getProject().getProjectId(), assigneeUserId);
-        if (!isAssigneeMember) {
-            throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
-        }
-
-        User assignee = userRepository.findById(assigneeUserId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        Long userId = SecurityUtils.getCurrentUserId();
+        assertCanChangeAssignee(task, userId, assigneeUserId);
+        User assignee = resolveAssigneeForProject(
+                task.getProject().getProjectId(), assigneeUserId);
         task.setAssignee(assignee);
         log.info("Assigned task id={} to userId={}", taskId, assigneeUserId);
         return taskMapper.toDetailResponse(taskRepository.save(task));
@@ -262,8 +275,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
-        //  Chỉ Admin hệ thống, Admin project hoặc Lead mới được
-        checkProjectManagerOrAdmin(task.getProject().getProjectId(), userId);
+        checkCanModifyTask(task, userId);
 
         task.setDueAt(dueAt);
         log.info("Updated dueAt task id={} by userId={}", taskId, userId);
@@ -277,7 +289,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
-            @CacheEvict(value = "tasks", allEntries = true)
+            @CacheEvict(value = "tasks", allEntries = true),
+            @CacheEvict(value = "project:board", allEntries = true),
+            @CacheEvict(value = "taskStatistic", allEntries = true),
+            @CacheEvict(value = "project:list", allEntries = true)
     })
     public TaskDetailResponse updateStatus(Long taskId, String status) {
         Long userId = SecurityUtils.getCurrentUserId();
@@ -285,12 +300,23 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findDetailById(taskId)
                 .orElseThrow(() -> new AppException(ErrorCode.TASK_NOT_FOUND));
 
-        // Chỉ Admin hệ thống, Admin project hoặc Lead mới được
-        checkProjectManagerOrAdmin(task.getProject().getProjectId(), userId);
+        checkCanModifyTask(task, userId);
 
         task.setStatus(status);
         log.info("Updated status task id={} to status={} by userId={}", taskId, status, userId);
-        return taskMapper.toDetailResponse(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+        activityLogRecorder.record(
+                "MOVE",
+                ActivityLogEntityType.TASK,
+                saved.getTaskId(),
+                saved.getProject().getProjectId(),
+                ActivityLogRecorder.metadataJson(
+                        "taskId", String.valueOf(saved.getTaskId()),
+                        "taskName", saved.getTaskName(),
+                        "newStatus", status
+                )
+        );
+        return taskMapper.toDetailResponse(saved);
     }
 
     // =========================================================
@@ -301,6 +327,9 @@ public class TaskServiceImpl implements TaskService {
     @Caching(evict = {
             @CacheEvict(value = "task", key = "#taskId"),
             @CacheEvict(value = "tasks", allEntries = true),
+            @CacheEvict(value = "project:board", allEntries = true),
+            @CacheEvict(value = "taskStatistic", allEntries = true),
+            @CacheEvict(value = "project:list", allEntries = true),
             @CacheEvict(value = "myTasks", allEntries = true)
     })
     public void deleteTask(Long taskId) {
@@ -315,6 +344,16 @@ public class TaskServiceImpl implements TaskService {
         task.setDeletedAt(LocalDateTime.now());
         taskRepository.save(task);
         log.info("Soft deleted task id={} by userId={}", taskId, userId);
+        activityLogRecorder.record(
+                "DELETE",
+                ActivityLogEntityType.TASK,
+                taskId,
+                task.getProject().getProjectId(),
+                ActivityLogRecorder.metadataJson(
+                        "taskId", String.valueOf(taskId),
+                        "taskName", task.getTaskName()
+                )
+        );
     }
 
     // =========================================================
@@ -368,5 +407,84 @@ public class TaskServiceImpl implements TaskService {
         if (!member.isManager()) {
             throw new AppException(ErrorCode.FORBIDDEN);
         }
+    }
+
+    /**
+     * OWNER/LEAD: sửa mọi task. MEMBER: chỉ task được giao cho mình. VIEWER: không sửa.
+     */
+    private void applyAssigneeUpdate(Task task, TaskUpdateRequest request, Long updatedByUserId) {
+        if (Boolean.TRUE.equals(request.getClearAssignee())) {
+            assertCanChangeAssignee(task, updatedByUserId, null);
+            task.setAssignee(null);
+            return;
+        }
+
+        if (request.getAssigneeId() == null) {
+            return;
+        }
+
+        assertCanChangeAssignee(task, updatedByUserId, request.getAssigneeId());
+        User assignee = resolveAssigneeForProject(
+                task.getProject().getProjectId(), request.getAssigneeId());
+        task.setAssignee(assignee);
+    }
+
+    /**
+     * Gán assignee: admin hệ thống chỉ cần user tồn tại; user khác phải là member dự án.
+     */
+    private User resolveAssigneeForProject(Long projectId, Long assigneeUserId) {
+        User assignee = userRepository.findById(assigneeUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (!SecurityUtils.isAdmin()) {
+            boolean isAssigneeMember = projectMemberRepository
+                    .existsByProject_ProjectIdAndUser_UserId(projectId, assigneeUserId);
+            if (!isAssigneeMember) {
+                throw new AppException(ErrorCode.PROJECT_MEMBER_NOT_FOUND);
+            }
+        }
+        return assignee;
+    }
+
+    private void checkCanModifyTask(Task task, Long userId) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+
+        Long projectId = task.getProject().getProjectId();
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndUserId(projectId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_ACCESS_DENIED));
+
+        ProjectRole role = ProjectRole.from(member.getRole());
+        if (role == ProjectRole.OWNER || role == ProjectRole.LEAD) {
+            return;
+        }
+        if (role == ProjectRole.VIEWER) {
+            throw new AppException(ErrorCode.TASK_ACCESS_DENIED);
+        }
+
+        User assignee = task.getAssignee();
+        if (assignee == null || !assignee.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.TASK_ACCESS_DENIED);
+        }
+    }
+
+    /** Chỉ OWNER/LEAD (hoặc admin hệ thống) được đổi người được giao. */
+    private void assertCanChangeAssignee(Task task, Long actorId, Long newAssigneeId) {
+        if (SecurityUtils.isAdmin()) {
+            return;
+        }
+
+        Long projectId = task.getProject().getProjectId();
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndUserId(projectId, actorId)
+                .orElseThrow(() -> new AppException(ErrorCode.TASK_ACCESS_DENIED));
+
+        if (member.isManager()) {
+            return;
+        }
+
+        throw new AppException(ErrorCode.TASK_ACCESS_DENIED);
     }
 }

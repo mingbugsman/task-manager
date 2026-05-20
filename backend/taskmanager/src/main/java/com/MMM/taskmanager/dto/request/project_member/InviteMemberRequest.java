@@ -29,7 +29,7 @@ public class InviteMemberRequest implements Serializable {
     private Long userId;
 
     /**
-     * Giá trị hợp lệ: ADMIN, LEAD, MEMBER, VIEWER
+     * Giá trị hợp lệ: OWNER, LEAD, MEMBER, VIEWER (hoặc displayName: Owner, Lead, …)
      * Mặc định MEMBER nếu không truyền
      */
     @Builder.Default

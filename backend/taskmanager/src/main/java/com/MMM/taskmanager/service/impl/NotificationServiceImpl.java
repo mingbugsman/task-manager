@@ -2,6 +2,7 @@ package com.MMM.taskmanager.service.impl;
 
 import com.MMM.taskmanager.config.SseEmitterManager;
 import com.MMM.taskmanager.dto.request.notification.SystemNotificationRequest;
+import com.MMM.taskmanager.dto.response.notification.AdminNotificationResponse;
 import com.MMM.taskmanager.dto.response.notification.NotificationResponse;
 import com.MMM.taskmanager.dto.response.util.PageResponse;
 import com.MMM.taskmanager.entity.Notification;
@@ -142,6 +143,49 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         log.info("Created {} system notifications", notifications.size());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AdminNotificationResponse> getAllNotificationsForAdmin(
+            String search, String type, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        String q = search != null && !search.isBlank() ? search.trim() : null;
+        String typeFilter = type != null && !type.isBlank() ? type.trim() : null;
+        Page<Notification> notificationPage =
+                notificationRepository.findAllForAdmin(q, typeFilter, pageable);
+
+        List<AdminNotificationResponse> items = notificationPage.getContent().stream()
+                .map(n -> AdminNotificationResponse.builder()
+                        .notificationId(n.getNotificationId())
+                        .recipientUserId(n.getUser().getUserId())
+                        .recipientUserName(n.getUser().getUserName())
+                        .recipientEmail(n.getUser().getEmail())
+                        .title(n.getTitle())
+                        .message(n.getMessage())
+                        .type(n.getType())
+                        .isRead(n.getIsRead())
+                        .createdAt(n.getCreatedAt())
+                        .build())
+                .toList();
+
+        return PageResponse.<AdminNotificationResponse>builder()
+                .currentPage(page)
+                .pageSize(size)
+                .totalPages(notificationPage.getTotalPages())
+                .totalElements(notificationPage.getTotalElements())
+                .hasNext(notificationPage.hasNext())
+                .hasPrevious(notificationPage.hasPrevious())
+                .items(items)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteNotificationAsAdmin(Long notificationId) {
+        Notification found = notificationRepository.findByNotificationId(notificationId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+        notificationRepository.delete(found);
     }
 
     @Override

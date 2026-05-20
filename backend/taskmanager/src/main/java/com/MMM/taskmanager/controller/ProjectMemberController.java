@@ -3,6 +3,7 @@ package com.MMM.taskmanager.controller;
 
 import com.MMM.taskmanager.dto.request.project_member.InviteMemberRequest;
 import com.MMM.taskmanager.dto.request.project_member.UpdateMemberRoleRequest;
+import com.MMM.taskmanager.dto.response.project_member.InviteLookupResponse;
 import com.MMM.taskmanager.dto.response.project_member.MemberStatisticResponse;
 import com.MMM.taskmanager.dto.response.project_member.ProjectMemberResponse;
 import com.MMM.taskmanager.dto.response.util.ApiResponse;
@@ -14,8 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -59,6 +58,21 @@ public class ProjectMemberController {
     }
 
 
+    /**
+     * GET /api/v1/projects/{projectId}/members/lookup?email=
+     * Tra cứu email trước khi mời — chỉ tài khoản đã đăng ký mới được thêm.
+     */
+    @GetMapping("/lookup")
+    public ResponseEntity<ApiResponse<InviteLookupResponse>> lookupInvitee(
+            @PathVariable Long projectId,
+            @RequestParam String email
+    ) {
+        Long inviterId = SecurityUtils.getCurrentUserId();
+        InviteLookupResponse result =
+                projectMemberService.lookupInvitee(projectId, inviterId, email);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
     // 2. INVITE
 
     /**
@@ -94,7 +108,6 @@ public class ProjectMemberController {
     public ResponseEntity<ApiResponse<ProjectMemberResponse>> updateRole(
             @PathVariable Long projectId,
             @PathVariable Long userId,
-            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody UpdateMemberRoleRequest request
     ) {
         Long adminId = SecurityUtils.getCurrentUserId();

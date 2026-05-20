@@ -35,8 +35,9 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    # Gmail: dùng App Password (bảo mật 2 lớp) — đặt MAIL_PASSWORD trong biến môi trường, không commit mật khẩu.
+    username: ${MAIL_USERNAME:support.taskmanager.hcmunre@gmail.com}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -60,6 +61,10 @@ MMM:
       jwtExpirationMs: ${JWT_EXPIRATION:86400000}
       jwtRefreshExpirationMs: ${JWT_REFRESH_EXPIRATION:604800000}
 
+    contact:
+      # Hòm thư nhận tin từ form Liên hệ (thường trùng tài khoản SMTP)
+      inbox: ${CONTACT_INBOX:support.taskmanager.hcmunre@gmail.com}
+
     cloudinary:
       cloudinaryApiKey: ${CLOUDINARY_API_KEY}
       cloudinaryName: ${CLOUDINARY_NAME}
@@ -74,4 +79,7 @@ server:
 logging:
   level:
     org.flywaydb: DEBUG
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 

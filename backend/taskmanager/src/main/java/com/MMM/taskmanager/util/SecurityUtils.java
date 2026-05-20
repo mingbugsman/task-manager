@@ -33,8 +33,22 @@ public class SecurityUtils {
     }
 
     public static boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getAuthorities() != null) {
+            boolean fromJwt = auth.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+            if (fromJwt) {
+                return true;
+            }
+        }
+
         Long userId = getCurrentUserId();
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
-        return Objects.equals(user.getRoleGlobal(), "ADMIN");
+        if (userId == null) {
+            return false;
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
+        String roleGlobal = user.getRoleGlobal();
+        return roleGlobal != null && "ADMIN".equalsIgnoreCase(roleGlobal.trim());
     }
 }

@@ -13,7 +13,10 @@ import com.MMM.taskmanager.repository.CommentRepository;
 import com.MMM.taskmanager.repository.ProjectMemberRepository;
 import com.MMM.taskmanager.repository.TaskRepository;
 import com.MMM.taskmanager.repository.UserRepository;
+import com.MMM.taskmanager.entity.type.ActivityLogEntityType;
+import com.MMM.taskmanager.service.ActivityLogRecorder;
 import com.MMM.taskmanager.service.CommentService;
+
 import com.MMM.taskmanager.util.SecurityUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,7 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final CommentMapper commentMapper;
+    private final ActivityLogRecorder activityLogRecorder;
 
     // 1. GET
 
@@ -133,6 +137,18 @@ public class CommentServiceImpl implements CommentService {
         Comment saved = commentRepository.save(comment);
         log.info("Tạo comment thành công [commentId={}]", saved.getCommentId());
 
+        activityLogRecorder.record(
+                "COMMENT",
+                ActivityLogEntityType.COMMENT,
+                saved.getCommentId(),
+                task.getProject().getProjectId(),
+                ActivityLogRecorder.metadataJson(
+                        "commentId", String.valueOf(saved.getCommentId()),
+                        "taskId", String.valueOf(taskId),
+                        "taskName", task.getTaskName()
+                )
+        );
+
         CommentResponse dto = commentMapper.toResponse(saved);
         dto.setReplyCount(0);
         return dto;
@@ -194,7 +210,9 @@ public class CommentServiceImpl implements CommentService {
         boolean isAuthor = commentRepository
                 .existsByCommentIdAndUser_UserIdAndDeletedAtIsNull(commentId, userId);
         boolean isAdmin  = projectMemberRepository
-                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "Admin");
+                .existsByProject_ProjectIdAndUser_UserIdAndRole(projectId, userId, "Owner")
+                || projectMemberRepository.existsByProject_ProjectIdAndUser_UserIdAndRole(
+                        projectId, userId, "Admin");
 
         if (!isAuthor && !isAdmin) {
             throw new AppException(ErrorCode.FORBIDDEN);
