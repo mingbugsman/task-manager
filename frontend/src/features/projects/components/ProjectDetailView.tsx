@@ -547,7 +547,7 @@ export function ProjectDetailView({ projectId }: ProjectDetailViewProps) {
           isSystemAdmin={session?.isAdmin}
           onRefresh={() => {
             load();
-            if (tab === "activity") loadActivities();
+            loadActivities();
           }}
         />
       ) : null}
