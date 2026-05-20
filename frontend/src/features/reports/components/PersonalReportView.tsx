@@ -244,9 +244,10 @@ export function PersonalReportView() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number, _name, item) => {
+                        formatter={(value, _name, item) => {
+                          const v = (value as number) ?? 0
                           const slice = item.payload as StatusSlice;
-                          return [`${value} task (${slice.percent}%)`, slice.label];
+                          return [`${v} task (${slice.percent}%)`, slice.label];
                         }}
                       />
                     </PieChart>
@@ -288,8 +289,8 @@ export function PersonalReportView() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
-                      formatter={(v: number) => [`${v}%`, "Tiến độ"]}
+                   <Tooltip
+                      formatter={(v) => [`${Number(v ?? 0)}%`, "Tiến độ"]}
                       contentStyle={{ borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 13 }}
                     />
                     <Bar dataKey="progressPercent" fill="#3B82F6" radius={[0, 6, 6, 0]} maxBarSize={20} />

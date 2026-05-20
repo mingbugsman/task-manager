@@ -198,7 +198,7 @@ export function ProjectAnalyticsPanel({ projectId, project }: ProjectAnalyticsPa
                   border: "1px solid #E2E8F0",
                   fontSize: 13,
                 }}
-                formatter={(v: number) => [`${v} task`, "Hoàn thành"]}
+                formatter={(v) => [`${(v as number) ?? 0} task`, "Hoàn thành"]}
               />
               <Area
                 type="monotone"
@@ -235,31 +235,29 @@ export function ProjectAnalyticsPanel({ projectId, project }: ProjectAnalyticsPa
                   ))}
               </Pie>
               <Tooltip
-                formatter={(value: number, _name, item) => {
+                formatter={(value, _name, item) => {
+                  const v = (value as number) ?? 0
                   const slice = item.payload as StatusSlice;
-                  return [`${value} task (${slice.percent}%)`, slice.label];
+                  return [`${v} task (${slice.percent}%)`, slice.label];
                 }}
               />
               <Legend
                 verticalAlign="bottom"
                 height={40}
-                payload={data.statusDistribution.map((s) => ({
-                  value: s.label,
-                  type: "square" as const,
-                  id: s.status,
-                  color: s.color,
-                }))}
-                formatter={(value) => {
-                  const slice = data.statusDistribution.find((s) => s.label === value);
-                  const pct = slice?.percent ?? 0;
-                  const count = slice?.count ?? 0;
-                  return (
-                    <span className="text-xs text-slate-600">
-                      {value}
-                      {count > 0 ? ` (${pct}%)` : " (0%)"}
-                    </span>
-                  );
-                }}
+                content={() => (
+                  <div className="flex flex-wrap justify-center gap-3 mt-2">
+                    {data.statusDistribution.map((s) => (
+                      <span key={s.status} className="flex items-center gap-1 text-xs text-slate-600">
+                        <span
+                          className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        {s.label}
+                        {s.count > 0 ? ` (${s.percent}%)` : " (0%)"}
+                      </span>
+                    ))}
+                  </div>
+                )}
               />
             </PieChart>
           </ResponsiveContainer>

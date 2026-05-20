@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import type { JWT } from "next-auth/jwt";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -95,7 +96,7 @@ export const authOptions: NextAuthOptions = {
           accessTokenExpires: user.accessTokenExpires,
           roles: user.roles,
           isAdmin: user.isAdmin,
-        };
+        } as JWT;
       }
 
       const expires = token.accessTokenExpires as number | undefined;
@@ -104,10 +105,10 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (!token.refreshToken) {
-        return { ...token, error: "RefreshAccessTokenError" };
+        return { ...token, error: "RefreshAccessTokenError" } as JWT;
       }
 
-      return refreshAccessToken(token as Record<string, unknown>);
+      return refreshAccessToken(token as Record<string, unknown>) as Promise<JWT>;
     },
 
     async session({ session, token }) {

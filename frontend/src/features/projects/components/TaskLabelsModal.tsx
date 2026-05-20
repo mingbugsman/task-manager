@@ -113,7 +113,7 @@ export function TaskLabelsModal({
         taskDescription: taskDetail.taskDescription,
         priority: taskDetail.priority,
         status: taskDetail.status,
-        assigneeId: taskDetail.assignee?.userId,
+        assigneeId: taskDetail.assignee?.userId ?? undefined,
         dueAt: taskDetail.dueAt ?? null,
         labelIds: Array.from(selected),
       });

@@ -289,7 +289,7 @@ export function TaskDetailView({ taskId }: TaskDetailViewProps) {
                     <section className="flex items-center gap-2">
                       <Avatar
                         name={task.assignee.userName ?? "?"}
-                        src={task.assignee.avatarUrl}
+                        src={task.assignee.avatarUrl ?? undefined}
                         size="sm"
                       />
                       {task.assignee.userName}

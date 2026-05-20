@@ -88,7 +88,7 @@ function displayName(member: ProjectMember): string {
 
 function memberUserId(member: ProjectMember): number | null {
   const raw = member.userId ?? member.user?.userId;
-  if (raw == null || raw === "") return null;
+  if (raw == null || String(raw).trim() === "") return null;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
