@@ -41,6 +41,8 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: tauri://localhost
+          BUILD_TARGET: desktop
 
       - name: Install desktop deps
         run: npm ci
