@@ -35,14 +35,13 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      - name: Build frontend for desktop
-        run: npm run build:desktop
+      - name: Build
+        run: npm run build
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: tauri://localhost
-          BUILD_TARGET: desktop
 
       - name: Install desktop deps
         run: npm ci
