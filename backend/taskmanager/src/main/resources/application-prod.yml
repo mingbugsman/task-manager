@@ -83,4 +83,3 @@ logging:
 
 app:
   frontend-url: ${PROD_FRONTEND_URL:http://localhost:3000}
-

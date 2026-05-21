@@ -4,68 +4,24 @@ on:
   push:
     branches: [master]
     paths:
-    - "backend/**"
+      - "backend/**"
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
-    env:
-      DB_URL: ${{ vars.DB_URL }}
-      DB_USERNAME: ${{ vars.DB_USERNAME}}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-
-      REDIS_HOST: ${{ vars.REDIS_HOST }}
-      REDIS_PORT: ${{ vars.REDIS_POST }}
-
-      MAIL_USERNAME: ${{ vars.MAIL_USERNAME }}
-      MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-      JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
-
-      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-      CLOUDINARY_NAME: ${{ secrets.CLOUDINARY_NAME }}
-      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: task_manager_db
-        ports:
-          - 3307:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
-          java-version: 17
-          distribution: "temurin"
-          cache: 'maven'
-      - name: Wait for MySQL to be ready
-        run: |
-          until mysqladmin ping -h 127.0.0.1 -P 3307 -u root -p123456 --silent; do
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
+          java-version: 21
+          distribution: temurin
+          cache: maven
+
       - name: Build with Maven
-        run: mvn -B package --no-transfer-progress
+        run: mvn -B package -DskipTests --no-transfer-progress
         working-directory: backend/taskmanager
+
+      - name: Deploy to Render
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
