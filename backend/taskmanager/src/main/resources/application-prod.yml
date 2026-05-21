@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: TaskManager
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 25MB
+  datasource:
+    url: ${PROD_DB_URL}
+    username: ${PROD_DB_USERNAME}
+    password: ${PROD_DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    url: ${PROD_DB_URL}
+    user: ${PROD_DB_USERNAME}
+    password: ${PROD_DB_PASSWORD}
+
+  data:
+    redis:
+      host: ${PROD_REDIS_HOST}
+      port: ${PROD_REDIS_PORT}
+      password: ${PROD_REDIS_PASSWORD}
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    # Gmail: dùng App Password (bảo mật 2 lớp) — đặt MAIL_PASSWORD trong biến môi trường, không commit mật khẩu.
+    username: ${MAIL_USERNAME:support.taskmanager.hcmunre@gmail.com}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+MMM:
+  taskmanager:
+    app:
+      jwtSecret: ${JWT_SECRET}
+      jwtExpirationMs: ${JWT_EXPIRATION:86400000}
+      jwtRefreshExpirationMs: ${JWT_REFRESH_EXPIRATION:604800000}
+
+    contact:
+      # Hòm thư nhận tin từ form Liên hệ (thường trùng tài khoản SMTP)
+      inbox: ${CONTACT_INBOX:support.taskmanager.hcmunre@gmail.com}
+
+    cloudinary:
+      cloudinaryApiKey: ${CLOUDINARY_API_KEY}
+      cloudinaryName: ${CLOUDINARY_NAME}
+      cloudinaryApiSecret: ${CLOUDINARY_API_SECRET}
+
+
+server:
+  error:
+    whitelabel:
+      enabled: false
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+
+app:
+  frontend-url: ${PROD_FRONTEND_URL:http://localhost:3000}
+
